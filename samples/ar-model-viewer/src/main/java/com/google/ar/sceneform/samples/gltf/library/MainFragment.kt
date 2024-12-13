@@ -3,14 +3,15 @@ package com.google.ar.sceneform.samples.gltf.library
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
-import com.google.ar.core.HitResult
+import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
+import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.AnchorNode
+import com.google.ar.sceneform.ArSceneView
 import com.google.ar.sceneform.Node
 import com.google.ar.sceneform.SceneView
 import com.google.ar.sceneform.math.Vector3
@@ -20,18 +21,12 @@ import com.google.ar.sceneform.rendering.ViewRenderable
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
-import com.gorisse.thomas.sceneform.scene.await
-
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
-import androidx.core.content.ContextCompat
-import com.google.ar.core.Anchor
-import com.google.ar.core.TrackingState
-import com.google.ar.sceneform.ArSceneView
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.gorisse.thomas.sceneform.scene.await
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainFragment : Fragment(R.layout.fragment_main) {
 
@@ -39,13 +34,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val arSceneView get() = arFragment.arSceneView
     private val scene get() = arSceneView.scene
 
-    private var model: Renderable? = null
+    private val models = mutableMapOf<String, Renderable?>()
     private var modelView: ViewRenderable? = null
 
-    //text recognition
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-    private var isAmphibianDetected = false
     private var isModelPlaced = false
+
+    private val recognizableModels = listOf("Amphibian", "Bacteria", "Digestive", "Platypus", "Heart")
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -58,7 +53,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL)
                 setupTextRecognition(arSceneView)
             }
-//            setOnTapArPlaneListener(::onTapPlane)
         }
 
         lifecycleScope.launchWhenCreated {
@@ -67,16 +61,17 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
     private suspend fun loadModels() {
-        model = ModelRenderable.builder()
-            .setSource(context, Uri.parse("models/frog.glb"))
-            .setIsFilamentGltf(true)
-            .await()
+        for (modelName in recognizableModels) {
+            models[modelName] = ModelRenderable.builder()
+                .setSource(context, Uri.parse("models/${modelName.lowercase(Locale.ROOT)}.glb"))
+                .setIsFilamentGltf(true)
+                .await()
+        }
         modelView = ViewRenderable.builder()
             .setView(context, R.layout.view_renderable_infos)
             .await()
     }
 
-    //Text Recognition
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
@@ -97,11 +92,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         val inputImage = InputImage.fromMediaImage(image, 0)
                         textRecognizer.process(inputImage)
                             .addOnSuccessListener { visionText ->
-                                if (visionText.text.contains("Amphibian", ignoreCase = true)) {
-                                    if (!isAmphibianDetected) {
-                                        isAmphibianDetected = true
-                                        showToast("'Amphibian' detected! Scanning for a surface...")
-                                        renderModelOnSurface()
+                                for (modelName in recognizableModels) {
+                                    if (visionText.text.contains(modelName, ignoreCase = true)) {
+                                        if (!isModelPlaced) {
+                                            showToast("'$modelName' detected! Scanning for a surface...")
+                                            renderModelOnSurface(modelName)
+                                            break
+                                        }
                                     }
                                 }
                             }
@@ -120,9 +117,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
-    private fun renderModelOnSurface() {
-        if (model == null || modelView == null) {
+    private fun renderModelOnSurface(modelName: String) {
+        if (models[modelName] == null || modelView == null) {
             Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
             return
         }
@@ -135,7 +131,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 if (plane.trackingState == TrackingState.TRACKING && !isModelPlaced) {
                     val pose = plane.centerPose
                     val anchor = plane.createAnchor(pose)
-                    placeModel(anchor)
+                    placeModel(anchor, modelName)
                     isModelPlaced = true
                     break
                 }
@@ -143,7 +139,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-    private fun placeModel(anchor: Anchor) {
+    private fun placeModel(anchor: Anchor, modelName: String) {
+        val model = models[modelName] ?: return
+
         scene.addChild(AnchorNode(anchor).apply {
             addChild(TransformableNode(arFragment.transformationSystem).apply {
                 renderable = model
@@ -159,11 +157,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
     private fun showToast(message: String) {
-        activity?.runOnUiThread {
-            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-        }
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
-
+}
 
     //Tap Functionality
 
@@ -190,4 +186,3 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 //            })
 //        })
 //    }
-}

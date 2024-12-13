@@ -13,35 +13,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
-import android.net.Uri
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
-import com.google.ar.sceneform.rendering.ModelRenderable
-import com.google.ar.sceneform.ux.ArFragment
-import com.google.ar.sceneform.ux.TransformableNode
-import androidx.compose.runtime.remember
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.filament.View
 import com.google.ar.sceneform.samples.gltf.R
-import com.google.ar.sceneform.samples.gltf.library.Activity
 import com.google.ar.sceneform.samples.gltf.library.gallery.AmphibianActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.BacteriaActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.DigestiveActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.HeartActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.PlatypusActivity
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.ui.platform.LocalContext
 
 
 class LibraryActivity : ComponentActivity() {
@@ -154,7 +141,7 @@ val modelActivityMap = mapOf(
 fun getModelItems(): List<ModelItemData> {
     return listOf(
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
-        ModelItemData("Amphibian", "models/frog.glb", R.drawable.amphibian),
+        ModelItemData("Amphibian", "models/amphibian.glb", R.drawable.amphibian),
         ModelItemData("Digestive System", "models/digestive.glb", R.drawable.digestive),
         ModelItemData("Platypus", "models/platypus.glb", R.drawable.platypus),
         ModelItemData("Heart", "models/bacteria.glb", R.drawable.heart),

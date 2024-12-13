@@ -50,7 +50,7 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
 
     private suspend fun loadModels() {
         model = ModelRenderable.builder()
-            .setSource(context, Uri.parse("models/digestives.glb"))
+            .setSource(context, Uri.parse("models/digestive.glb"))
             .setIsFilamentGltf(true)
             .await()
         modelView = ViewRenderable.builder()

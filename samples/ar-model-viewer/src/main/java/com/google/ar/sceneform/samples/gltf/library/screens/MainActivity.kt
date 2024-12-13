@@ -27,7 +27,6 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.LibraryBooks
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.TextFields
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -52,9 +51,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 import com.google.ar.sceneform.samples.gltf.R
-import com.google.ar.sceneform.samples.gltf.library.Activity
+import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
@@ -180,16 +178,7 @@ fun MainScreen(
                         }
                     )
                 }
-                Spacer(modifier = Modifier.height(22.dp))
 
-                AnimatedMaterialIconButton(
-                    text = "Practice",
-                    icon = Icons.Filled.School,
-                    fontFamily = MinecraftFontFamily,
-                    onClick = {
-                        // Start a practice mode (implement or customize this later)
-                    }
-                )
                 Spacer(modifier = Modifier.height(22.dp))
 
                 AnimatedMaterialIconButton(
@@ -204,13 +193,12 @@ fun MainScreen(
 
                 Spacer(modifier = Modifier.height(22.dp))
 
-                // Button to open Text Recognition Screen
                 AnimatedMaterialIconButton(
-                    text = "Text Recognition",
-                    icon = Icons.Filled.TextFields,
+                    text = "Practice",
+                    icon = Icons.Filled.School,
                     fontFamily = MinecraftFontFamily,
                     onClick = {
-                        showTextRecognition = true // Switch to Text Recognition Screen
+                        // Start a practice mode (implement or customize this later)
                     }
                 )
             }
