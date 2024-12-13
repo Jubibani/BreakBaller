@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -49,11 +50,15 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private val recognizableModels = listOf("Amphibian", "Bacteria", "Digestive", "Platypus", "Heart")
 
-
+    //sounds
+    private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var ping: MediaPlayer
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
+        // Initialize MediaPlayer
+        mediaPlayer = MediaPlayer.create(context, R.raw.popup)
+        ping = MediaPlayer.create(context, R.raw.sonarping)
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
                 // Modify the AR session configuration here
@@ -106,6 +111,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                     if (visionText.text.contains(modelName, ignoreCase = true)) {
                                         if (!isModelPlaced) {
                                             vibrate()
+                                            pingSound()
                                             if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
                                                 showToast("'$modelName' detected! Scanning for a surface...")
                                                 lastToastTime = currentTimeMs
@@ -134,6 +140,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun renderModelOnSurface(modelName: String) {
         if (models[modelName] == null || modelView == null) {
             vibrate()
+            pingSound()
             Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
             return
         }
@@ -167,6 +174,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     localScale = Vector3(0.7f, 0.7f, 0.7f)
                     renderable = modelView
                 })
+
+                // Play sound effect when model is rendered
+                playRenderSound()
             })
         })
     }
@@ -191,6 +201,19 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 it.vibrate(200)
             }
         }
+    }
+
+    private fun playRenderSound() {
+        mediaPlayer.start()
+    }
+    private fun pingSound() {
+        ping.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release()
+        ping.release()
     }
 }
 

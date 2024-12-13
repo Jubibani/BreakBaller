@@ -1,50 +1,99 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.unit.dp
-import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
-import android.widget.Toast
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.gallery.AmphibianActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.BacteriaActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.DigestiveActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.HeartActivity
 import com.google.ar.sceneform.samples.gltf.library.gallery.PlatypusActivity
+import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
 class LibraryActivity : ComponentActivity() {
+
+    //sounds
+    private lateinit var backSound: MediaPlayer
+    private lateinit var flipSound: MediaPlayer
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize MediaPlayer
+        backSound = MediaPlayer.create(this, R.raw.back)
+        flipSound = MediaPlayer.create(this, R.raw.flip)
+
         setContent {
             AugmentEDTheme {
-                LibraryScreen(finish = { finish()})
+                LibraryScreen(
+                    finish = { finish()},
+                    //sound
+                    playBackSound = { playBackSound() },
+                    playFlipSound = { playFlipSound() }
+                )
             }
         }
+    }
+
+    private fun playBackSound() {
+        backSound.start()
+    }
+
+    private fun playFlipSound() {
+        flipSound.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        backSound.release()
+        flipSound.release()
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LibraryScreen(finish: () -> Unit) {
+fun LibraryScreen(
+    finish: () -> Unit,
+    playBackSound: () -> Unit,
+    playFlipSound: () -> Unit
+    //sound
+    ) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
@@ -56,6 +105,7 @@ fun LibraryScreen(finish: () -> Unit) {
                 ),
                 navigationIcon = {
                     IconButton(onClick = {
+                        playBackSound()
                         val intent = Intent(context, MainActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
                         context.startActivity(intent)
@@ -76,7 +126,7 @@ fun LibraryScreen(finish: () -> Unit) {
             modifier = Modifier.padding(innerPadding)
         ) {
             items(getModelItems()) { item ->
-                ModelItem(item)
+                ModelItem(item, playFlipSound)
             }
         }
     }
@@ -84,7 +134,7 @@ fun LibraryScreen(finish: () -> Unit) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModelItem(item: ModelItemData) {
+fun ModelItem(item: ModelItemData, playFlipSound: () -> Unit) {
     val context = LocalContext.current
     Card(
         modifier = Modifier
@@ -93,6 +143,7 @@ fun ModelItem(item: ModelItemData) {
             .clickable {
                 val activityClass = modelActivityMap[item.name]
                 if (activityClass != null) {
+                    playFlipSound()
                     val intent = Intent(context, activityClass).apply {
                         putExtra("modelPath", item.modelPath)
                     }

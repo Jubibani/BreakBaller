@@ -38,6 +38,20 @@
             android:name="com.google.ar.core"
             android:value="required" />
 
+
+        <!--Splash Activity-->
+<!--        <activity-->
+<!--            android:name=".library.screens.SplashActivity"-->
+<!--            android:configChanges="orientation|screenSize"-->
+<!--            android:exported="true"-->
+<!--            android:screenOrientation="locked">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
+
+
         <!--Main Activity-->
         <activity
             android:name=".library.screens.MainActivity"

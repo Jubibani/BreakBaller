@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library.gallery
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -35,8 +36,15 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
     private var model: Renderable? = null
     private var modelView: ViewRenderable? = null
 
+
+    //sounds
+    private lateinit var mediaPlayer: MediaPlayer
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        // Initialize MediaPlayer
+        mediaPlayer = MediaPlayer.create(context, R.raw.popup)
 
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
@@ -88,6 +96,9 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
                     localScale = Vector3(0.2f, 0.2f, 0.2f)  // Made info panel even smaller
                     renderable = modelView
                 })
+
+                // Play sound effect when model is rendered
+                playRenderSound()
             })
         })
     }
@@ -109,5 +120,14 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
                 it.vibrate(200)
             }
         }
+    }
+
+    private fun playRenderSound() {
+        mediaPlayer.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release()
     }
 }

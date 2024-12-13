@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -57,18 +58,40 @@ import kotlinx.coroutines.delay
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
+
+
+    //sounds
+    private lateinit var mediaPlayer: MediaPlayer
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize MediaPlayer
+        mediaPlayer = MediaPlayer.create(this, R.raw.ui)
 
         setContent {
             AugmentEDTheme {
                 MainScreen(
                     isArSupported = true,
                     sensorX = 0f,
-                    sensorY = 0f
+                    sensorY = 0f,
+
+                    //sound
+                    playButtonSound = { playButtonSound() }  // Pass this function to MainScreen
                 )
             }
         }
+
+    }
+
+    //sound
+    private fun playButtonSound() {
+        mediaPlayer.start()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release()
     }
 }
 
@@ -82,7 +105,8 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     isArSupported: Boolean,
     sensorX: Float,
-    sensorY: Float
+    sensorY: Float,
+    playButtonSound: () -> Unit //sound
 ) {
     val context = LocalContext.current
     var showTextRecognition by remember { mutableStateOf(false) } // State to toggle screens
@@ -172,6 +196,7 @@ fun MainScreen(
                         icon = Icons.Filled.QrCodeScanner,
                         fontFamily = MinecraftFontFamily,
                         onClick = {
+                            playButtonSound()
                             // Start HelloAR activity (AR scanning)
                             val intent = Intent(context, com.google.ar.sceneform.samples.gltf.library.Activity::class.java)
                             context.startActivity(intent)
@@ -186,6 +211,7 @@ fun MainScreen(
                     icon = Icons.Filled.LibraryBooks,
                     fontFamily = MinecraftFontFamily,
                     onClick = {
+                        playButtonSound()
                         val intent = Intent(context, LibraryActivity::class.java)
                         context.startActivity(intent)
                     }
@@ -198,6 +224,7 @@ fun MainScreen(
                     icon = Icons.Filled.School,
                     fontFamily = MinecraftFontFamily,
                     onClick = {
+                        playButtonSound()
                         // Start a practice mode (implement or customize this later)
                     }
                 )
