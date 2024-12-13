@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translation_description="App Name [CHAR LIMIT=40]">AR glTF</string>
+    <string name="back_to_library">Back to Library</string>
+    <string name="back">Back to Library</string>
+</resources>
