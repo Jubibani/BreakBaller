@@ -1,7 +1,12 @@
 package com.google.ar.sceneform.samples.gltf.library.gallery
 
+import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
@@ -60,7 +65,8 @@ class BacteriaMainFragment : Fragment(R.layout.fragment_main) {
 
     private fun onTapPlane(hitResult: HitResult, plane: Plane, motionEvent: MotionEvent) {
         if (model == null || modelView == null) {
-            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
+            vibrate()
+            Toast.makeText(context, "Loading...", Toast.LENGTH_LONG).show()
             return
         }
 
@@ -80,5 +86,23 @@ class BacteriaMainFragment : Fragment(R.layout.fragment_main) {
                 })
             })
         })
+    }
+    private fun vibrate() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context?.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+
+        vibrator?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                it.vibrate(200)
+            }
+        }
     }
 }

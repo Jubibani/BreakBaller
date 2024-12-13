@@ -38,7 +38,7 @@
         app:tint="@android:color/white"
         app:elevation="0dp"
         app:fabCustomSize="48dp"
-        app:maxImageSize="24dp"
+        app:maxImageSize="40dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         android:background="@android:color/transparent"

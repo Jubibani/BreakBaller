@@ -1,7 +1,12 @@
 package com.google.ar.sceneform.samples.gltf.library
 
+import android.content.Context
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.view.View
 import android.widget.Toast
@@ -39,8 +44,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
+    private var lastToastTime = 0L
+    private val TOAST_COOLDOWN_MS = 3000 // 3 seconds cooldown
 
     private val recognizableModels = listOf("Amphibian", "Bacteria", "Digestive", "Platypus", "Heart")
+
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -75,7 +84,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 500 // Process at most every 500ms
+        val minProcessingIntervalMs = 1000 // Process at most every
+
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
             val currentTimeMs = System.currentTimeMillis()
@@ -95,7 +105,11 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                 for (modelName in recognizableModels) {
                                     if (visionText.text.contains(modelName, ignoreCase = true)) {
                                         if (!isModelPlaced) {
-                                            showToast("'$modelName' detected! Scanning for a surface...")
+                                            vibrate()
+                                            if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
+                                                showToast("'$modelName' detected! Scanning for a surface...")
+                                                lastToastTime = currentTimeMs
+                                            }
                                             renderModelOnSurface(modelName)
                                             break
                                         }
@@ -119,6 +133,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private fun renderModelOnSurface(modelName: String) {
         if (models[modelName] == null || modelView == null) {
+            vibrate()
             Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
             return
         }
@@ -158,6 +173,24 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+    private fun vibrate() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vibratorManager?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context?.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        }
+
+        vibrator?.let {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                it.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                it.vibrate(200)
+            }
+        }
     }
 }
 
