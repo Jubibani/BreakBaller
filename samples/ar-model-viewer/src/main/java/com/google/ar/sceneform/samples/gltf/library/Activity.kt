@@ -10,31 +10,45 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.screens.MainActivity
 
 class Activity : AppCompatActivity(R.layout.activity) {
-    //sounds
     private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var refreshButton: MediaPlayer
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize MediaPlayer
         mediaPlayer = MediaPlayer.create(this, R.raw.back)
+        refreshButton = MediaPlayer.create(this, R.raw.refresh)
 
 
-//        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar).apply {
-//            title = ""
-//        })
-
-        supportFragmentManager.commit {
-            add(R.id.containerFragment, MainFragment::class.java, Bundle())
+        if (savedInstanceState == null) {
+            supportFragmentManager.commit {
+                add(R.id.containerFragment, MainFragment::class.java, Bundle())
+            }
         }
 
         findViewById<FloatingActionButton>(R.id.backButton).setOnClickListener {
             mediaPlayer.start()
-            // Navigate back to MainActivity
             val intent = Intent(this, MainActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
             finish()
         }
+
+        findViewById<FloatingActionButton>(R.id.refreshButton).setOnClickListener {
+            refreshButton.start()
+            restartFragment()
+        }
+    }
+
+    private fun restartFragment() {
+        supportFragmentManager.commit {
+            replace(R.id.containerFragment, MainFragment::class.java, Bundle())
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer.release()
+        refreshButton.release()
     }
 }

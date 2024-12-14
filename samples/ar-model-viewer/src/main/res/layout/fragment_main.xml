@@ -20,26 +20,28 @@
         android:layout_marginBottom="16dp"
         android:visibility="gone" />
 
-    <!-- Refresh Button -->
-<!--    <com.google.android.material.floatingactionbutton.FloatingActionButton-->
-<!--        android:id="@+id/refreshButton"-->
-<!--        android:layout_width="wrap_content"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_margin="40dp"-->
-<!--        android:contentDescription="@string/back"-->
-<!--        app:srcCompat="@drawable/restart"-->
-<!--        app:backgroundTint="@android:color/transparent"-->
-<!--        app:tint="@android:color/white"-->
-<!--        app:elevation="0dp"-->
-<!--        app:fabCustomSize="48dp"-->
-<!--        app:maxImageSize="50dp"-->
-<!--        app:layout_constraintTop_toTopOf="parent"-->
-<!--        app:layout_constraintStart_toStartOf="parent"-->
-<!--        android:background="@android:color/transparent"-->
-<!--        app:borderWidth="0dp"-->
-<!--        app:rippleColor="@android:color/transparent"-->
 
-<!--        android:layout_gravity="bottom|end"-->
-<!--        />-->
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/infoButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/back"
+        app:srcCompat="@drawable/info"
+        app:backgroundTint="@android:color/transparent"
+        app:tint="@android:color/white"
+        app:elevation="0dp"
+        app:fabCustomSize="48dp"
+        app:maxImageSize="40dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:background="@android:color/transparent"
+        app:borderWidth="0dp"
+        app:rippleColor="@android:color/transparent"
+
+        android:layout_gravity="top|end"
+        />
+
 
 </FrameLayout>

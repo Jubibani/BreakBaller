@@ -10,49 +10,73 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.screens.LibraryActivity
 
 class PlatypusActivity : AppCompatActivity(R.layout.activity) {
-
-    //sounds
-    private var backSound: MediaPlayer? = null
+    private var mediaPlayer: MediaPlayer? = null
+    private  var refreshButton: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize MediaPlayer
-        backSound = MediaPlayer.create(this, R.raw.back)
-        backSound?.setOnCompletionListener { mp ->
-            mp.release()
+        mediaPlayer = MediaPlayer.create(this, R.raw.back)
+        refreshButton = MediaPlayer.create(this, R.raw.refresh)
+
+        if (savedInstanceState == null) {
+            supportFragmentManager.commit {
+                add(R.id.containerFragment, PlatypusFragment::class.java, Bundle())
+            }
         }
 
-//        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar).apply {
-//            title = ""
-//        })
+        setupBackButton()
+        setupRefreshButton()
+    }
 
-        supportFragmentManager.commit {
-            add(R.id.containerFragment, PlatypusFragment::class.java, Bundle())
-        }
-
-        // Set up the back button
+    private fun setupBackButton() {
         findViewById<FloatingActionButton>(R.id.backButton).setOnClickListener {
-            playBackSound()
-            // Navigate back to LibraryActivity
-            val intent = Intent(this, LibraryActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-            finish()
+            playSound()
+            navigateToLibrary()
         }
     }
-    //sound
-    private fun playBackSound() {
-        backSound?.let { sound ->
-            if (!sound.isPlaying) {
-                sound.start()
+
+    private fun setupRefreshButton() {
+        findViewById<FloatingActionButton>(R.id.refreshButton).setOnClickListener {
+            playRefreshSound()
+            restartFragment()
+        }
+    }
+
+    private fun navigateToLibrary() {
+        val intent = Intent(this, LibraryActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        startActivity(intent)
+        finish()
+    }
+
+    private fun restartFragment() {
+        supportFragmentManager.commit {
+            replace(R.id.containerFragment, PlatypusFragment::class.java, Bundle())
+        }
+    }
+
+    private fun playSound() {
+        mediaPlayer?.let { player ->
+            if (!player.isPlaying) {
+                player.start()
             }
         }
     }
 
+    private fun playRefreshSound() {
+        refreshButton?.let { player ->
+            if (!player.isPlaying) {
+                player.start()
+            }
+        }
+    }
+
+
     override fun onDestroy() {
         super.onDestroy()
-        backSound?.release()
-        backSound = null
+        mediaPlayer?.release()
+        refreshButton?.release()
+        mediaPlayer = null
     }
 }

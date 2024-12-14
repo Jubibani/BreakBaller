@@ -14,17 +14,6 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-<!--    <androidx.appcompat.widget.Toolbar-->
-<!--        android:id="@+id/toolbar"-->
-<!--        android:layout_width="0dp"-->
-<!--        android:layout_height="?actionBarSize"-->
-<!--        android:fitsSystemWindows="true"-->
-<!--        android:minHeight="?attr/actionBarSize"-->
-<!--        android:popupTheme="@style/ThemeOverlay.MaterialComponents.ActionBar"-->
-<!--        android:theme="@style/AppTheme.Toolbar"-->
-<!--        app:layout_constraintLeft_toLeftOf="parent"-->
-<!--        app:layout_constraintRight_toRightOf="parent"-->
-<!--        app:layout_constraintTop_toTopOf="parent" />-->
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -44,5 +33,26 @@
         android:background="@android:color/transparent"
         app:borderWidth="0dp"
         app:rippleColor="@android:color/transparent" />
+
+    <!-- Refresh Button -->
+    <!-- Refresh Button -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/refreshButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:background="@android:color/transparent"
+        android:contentDescription="@string/refresh"
+        app:backgroundTint="@android:color/transparent"
+        app:borderWidth="0dp"
+        app:elevation="0dp"
+        app:fabCustomSize="48dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:maxImageSize="40dp"
+        app:rippleColor="@android:color/transparent"
+        app:srcCompat="@drawable/restart"
+        app:tint="@android:color/white" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
