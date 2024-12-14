@@ -60,7 +60,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var ping: MediaPlayer
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
-    private lateinit var frogCroak: MediaPlayer
 
     private var pingJob: Job? = null
     private var lastPingTime = 0L
@@ -71,7 +70,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var infoButton: FloatingActionButton
     private var isInfoVisible = false
 
-
+    //restart
+    private lateinit var restartButton: FloatingActionButton
 
     data class ModelInfo(
         val modelName: String,

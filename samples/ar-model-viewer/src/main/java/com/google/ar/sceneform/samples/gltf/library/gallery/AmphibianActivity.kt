@@ -1,6 +1,5 @@
 package com.google.ar.sceneform.samples.gltf.library.gallery
 
-
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -11,46 +10,72 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.screens.LibraryActivity
 
 class AmphibianActivity : AppCompatActivity(R.layout.activity) {
-    //sounds
-    private var backSound: MediaPlayer? = null
-
+    private var mediaPlayer: MediaPlayer? = null
+    private  var refreshButton: MediaPlayer? = null
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize MediaPlayer
-        backSound = MediaPlayer.create(this, R.raw.back)
-        backSound?.setOnCompletionListener { mp ->
-            mp.release()
-        }
-//        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar).apply {
-//            title = ""
-//        })
+        mediaPlayer = MediaPlayer.create(this, R.raw.back)
+        refreshButton = MediaPlayer.create(this, R.raw.refresh)
 
-        supportFragmentManager.commit {
-            add(R.id.containerFragment, AmphibianMainFragment::class.java, Bundle())
+        if (savedInstanceState == null) {
+            supportFragmentManager.commit {
+                add(R.id.containerFragment, AmphibianMainFragment::class.java, Bundle())
+            }
         }
 
-        // Set up the back button
+        setupBackButton()
+        setupRefreshButton()
+    }
+
+    private fun setupBackButton() {
         findViewById<FloatingActionButton>(R.id.backButton).setOnClickListener {
-            playBackSound()
-            val intent = Intent(this, LibraryActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            startActivity(intent)
-            finish()
+            playSound()
+            navigateToLibrary()
         }
     }
-    //sound
-    private fun playBackSound() {
-        backSound?.let { sound ->
-            if (!sound.isPlaying) {
-                sound.start()
+
+    private fun setupRefreshButton() {
+        findViewById<FloatingActionButton>(R.id.refreshButton).setOnClickListener {
+            playRefreshSound()
+            restartFragment()
+        }
+    }
+
+    private fun navigateToLibrary() {
+        val intent = Intent(this, LibraryActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        startActivity(intent)
+        finish()
+    }
+
+    private fun restartFragment() {
+        supportFragmentManager.commit {
+            replace(R.id.containerFragment, AmphibianMainFragment::class.java, Bundle())
+        }
+    }
+
+    private fun playSound() {
+        mediaPlayer?.let { player ->
+            if (!player.isPlaying) {
+                player.start()
             }
         }
     }
 
-    override fun onDestroy() {
+    private fun playRefreshSound() {
+        refreshButton?.let { player ->
+            if (!player.isPlaying) {
+                player.start()
+            }
+        }
+    }
+
+
+        override fun onDestroy() {
         super.onDestroy()
-        backSound?.release()
-        backSound = null
+        mediaPlayer?.release()
+        refreshButton?.release()
+        mediaPlayer = null
     }
 }
