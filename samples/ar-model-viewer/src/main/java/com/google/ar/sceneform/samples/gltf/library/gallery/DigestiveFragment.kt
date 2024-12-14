@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.HitResult
 import com.google.ar.core.Plane
 import com.google.ar.sceneform.AnchorNode
@@ -39,12 +40,29 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
 
     //sounds
     private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var on: MediaPlayer
+    private lateinit var off: MediaPlayer
+
+
+    //hiding
+    private lateinit var infoButton: FloatingActionButton
+    private var isInfoVisible = !isVisible
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         // Initialize MediaPlayer
         mediaPlayer = MediaPlayer.create(context, R.raw.popup)
+        on = MediaPlayer.create(context, R.raw.on)
+        off = MediaPlayer.create(context, R.raw.off)
+
+        //initialize views
+        infoButton = view.findViewById(R.id.infoButton)
+        // Set up infoButton click listener
+        infoButton.setOnClickListener {
+            toggleInfoVisibility()
+        }
+
 
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
@@ -60,14 +78,26 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
             loadModels()
         }
     }
-
+    //hiding
+    private fun toggleInfoVisibility() {
+        isInfoVisible = !isInfoVisible
+        scene.findByName("InfoNode")?.let { infoNode ->
+            infoNode.isEnabled = isInfoVisible
+            if (isInfoVisible) {
+                onSound()
+            } else {
+                offSound()
+            }
+        }
+        vibrate()
+    }
     private suspend fun loadModels() {
         model = ModelRenderable.builder()
             .setSource(context, Uri.parse("models/digestive.glb"))
             .setIsFilamentGltf(true)
             .await()
         modelView = ViewRenderable.builder()
-            .setView(context, R.layout.view_renderable_infos)
+            .setView(context, R.layout.digestive_infos)
             .await()
     }
 
@@ -86,21 +116,23 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
                 renderableInstance.setCulling(false)
                 renderableInstance.animate(true).start()
 
-                // Adjust the scale of the model here
-                localScale = Vector3(0.02f, 0.02f, 0.02f)  // Reduce size to 2% of original
 
-                // Add the View
+                // Add the View as a separate node
                 addChild(Node().apply {
-                    // Adjust the position of the info panel
-                    localPosition = Vector3(0.0f, 0.1f, 0.0f)  // Moved even closer to the model
-                    localScale = Vector3(0.2f, 0.2f, 0.2f)  // Made info panel even smaller
+                    name = "InfoNode"
+                    localPosition = Vector3(0.0f, 1f, 0.0f)
+                    localScale = Vector3(0.7f, 0.7f, 0.7f)
                     renderable = modelView
+                    isEnabled = false  // Initially hidden
                 })
 
                 // Play sound effect when model is rendered
                 playRenderSound()
             })
         })
+
+        // Make the info button visible after placing the model
+        infoButton.visibility = View.VISIBLE
     }
 
     private fun vibrate() {
@@ -126,8 +158,19 @@ class DigestiveFragment : Fragment(R.layout.fragment_main) {
         mediaPlayer.start()
     }
 
+    private fun onSound() {
+        on.start()
+    }
+
+
+    private fun offSound() {
+        off.start()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayer.release()
+        on.release()
+        off.release()
     }
 }
