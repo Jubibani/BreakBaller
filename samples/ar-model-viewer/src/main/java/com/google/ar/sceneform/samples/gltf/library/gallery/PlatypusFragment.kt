@@ -42,6 +42,7 @@ class PlatypusFragment : Fragment(R.layout.fragment_main) {
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
+    private lateinit var platypusSound: MediaPlayer
 
     //hiding
     private lateinit var infoButton: FloatingActionButton
@@ -54,6 +55,7 @@ class PlatypusFragment : Fragment(R.layout.fragment_main) {
         mediaPlayer = MediaPlayer.create(context, R.raw.popup)
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
+        platypusSound = MediaPlayer.create(context, R.raw.platypusound)
 
         //initialize views
         infoButton = view.findViewById(R.id.infoButton)
@@ -125,6 +127,10 @@ class PlatypusFragment : Fragment(R.layout.fragment_main) {
 
                 // Play sound effect when model is rendered
                 playRenderSound()
+
+                setOnTapListener {   _, _ ->
+                    platypusSound.start()
+                }
             })
         })
 

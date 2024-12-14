@@ -42,6 +42,7 @@ class HeartFragment : Fragment(R.layout.fragment_main) {
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
+    private lateinit var heartSound: MediaPlayer
 
     //hiding
     private lateinit var infoButton: FloatingActionButton
@@ -54,6 +55,8 @@ class HeartFragment : Fragment(R.layout.fragment_main) {
         mediaPlayer = MediaPlayer.create(context, R.raw.popup)
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
+        heartSound = MediaPlayer.create(context, R.raw.heartsound)
+
 
         //initialize views
         infoButton = view.findViewById(R.id.infoButton)
@@ -126,6 +129,10 @@ class HeartFragment : Fragment(R.layout.fragment_main) {
 
                 // Play sound effect when model is rendered
                 playRenderSound()
+
+                setOnTapListener {   _, _ ->
+                    heartSound.start()
+                }
             })
         })
 
