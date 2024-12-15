@@ -225,7 +225,8 @@ fun MainScreen(
                     fontFamily = MinecraftFontFamily,
                     onClick = {
                         playButtonSound()
-                        // Start a practice mode (implement or customize this later)
+                        val intent = Intent(context, PracticeActivity::class.java)
+                        context.startActivity(intent)
                     }
                 )
             }

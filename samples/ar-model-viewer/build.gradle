@@ -54,6 +54,7 @@ android {
 
 dependencies {
 
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_coroutines_version"
@@ -101,6 +102,10 @@ dependencies {
     implementation "io.coil-kt:coil-compose:2.4.0"
     implementation 'com.google.android.filament:filament-android:1.13.0'
     implementation 'com.google.android.filament:filament-utils-android:1.13.0'
+
+    //UI
+    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.viewpager2:viewpager2:1.0.0'
 
     // Testing
     testImplementation 'junit:junit:4.13.2'

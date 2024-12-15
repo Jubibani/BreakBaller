@@ -51,7 +51,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
     private var lastToastTime = 0L
-    private val TOAST_COOLDOWN_MS = 4000 // 3 seconds cooldown
+    private val TOAST_COOLDOWN_MS = 20000 // 9 seconds cooldown
 
     private val recognizableModels = listOf("Amphibian", "Bacteria", "Digestive", "Platypus", "Heart")
 
@@ -165,7 +165,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                             vibrate()
                                             startRepeatingPing() // Start repeating ping
                                             if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
-                                                showToast("'$modelName' detected! Scanning for a surface...")
+                                                showToast("'$modelName' detected! Find a Surface to Render the model.")
                                                 lastToastTime = currentTimeMs
                                             }
                                             renderModelOnSurface(modelName)
