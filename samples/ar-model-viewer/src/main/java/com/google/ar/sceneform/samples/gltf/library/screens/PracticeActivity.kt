@@ -33,35 +33,74 @@ import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
 class PracticeActivity : FragmentActivity() {
-    private lateinit var backSound: MediaPlayer
+    private var backSound: MediaPlayer? = null
+    private var switchSound: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        backSound = MediaPlayer.create(this, R.raw.back)
+        initializeSounds()
         setContent {
             AugmentEDTheme {
                 PracticeScreen(
                     finish = { finish() },
-                    playBackSound = { playBackSound() }
+                    playBackSound = { playBackSound() },
+                    playSwitchSound = { playSwitchSound() }
                 )
             }
         }
     }
 
+
+    private fun initializeSounds() {
+        try {
+            backSound = MediaPlayer.create(this, R.raw.back)
+            switchSound = MediaPlayer.create(this, R.raw.swipe)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
     private fun playBackSound() {
-        backSound.start()
+        backSound?.let { sound ->
+            if (!sound.isPlaying) {
+                sound.start()
+            }
+        }
+    }
+
+    private fun playSwitchSound() {
+        switchSound?.let { sound ->
+            if (!sound.isPlaying) {
+                sound.start()
+            }
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        backSound.release()
+        releaseMediaPlayers()
+    }
+
+    private fun releaseMediaPlayers() {
+        backSound?.apply {
+            if (isPlaying) stop()
+            release()
+        }
+        switchSound?.apply {
+            if (isPlaying) stop()
+            release()
+        }
+        backSound = null
+        switchSound = null
     }
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PracticeScreen(
     finish: () -> Unit,
-    playBackSound: () -> Unit
+    playBackSound: () -> Unit,
+    playSwitchSound: () -> Unit
 ) {
     val context = LocalContext.current
     val tabTitles = remember { listOf("Learn and Earn", "Rewards") }
@@ -105,7 +144,6 @@ fun PracticeScreen(
                             LinearLayout.LayoutParams.MATCH_PARENT
                         )
 
-                        // Create TabLayout
                         val tabLayoutView = TabLayout(context).apply {
                             tabMode = TabLayout.MODE_FIXED
                             tabGravity = TabLayout.GRAVITY_FILL
@@ -113,7 +151,6 @@ fun PracticeScreen(
                                 LinearLayout.LayoutParams.MATCH_PARENT,
                                 LinearLayout.LayoutParams.WRAP_CONTENT
                             )
-                            // Ensure tab text is always visible
                             setSelectedTabIndicatorColor(context.getColor(R.color.gold))
                             setTabTextColors(
                                 context.getColor(R.color.off_white),
@@ -122,7 +159,6 @@ fun PracticeScreen(
                         }
                         addView(tabLayoutView)
 
-                        // Create ViewPager2
                         val viewPagerView = ViewPager2(context).apply {
                             layoutParams = LinearLayout.LayoutParams(
                                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -134,12 +170,25 @@ fun PracticeScreen(
                         }
                         addView(viewPagerView)
 
-                        // Set up TabLayoutMediator
                         TabLayoutMediator(tabLayoutView, viewPagerView) { tab, position ->
                             tab.text = tabTitles[position]
                         }.attach()
 
-                        // Return the root view
+                        // Set up listeners for both TabLayout and ViewPager2
+                        tabLayoutView.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+                            override fun onTabSelected(tab: TabLayout.Tab?) {
+                                playSwitchSound()
+                            }
+                            override fun onTabUnselected(tab: TabLayout.Tab?) {}
+                            override fun onTabReselected(tab: TabLayout.Tab?) {}
+                        })
+
+                        viewPagerView.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+                            override fun onPageSelected(position: Int) {
+                                playSwitchSound()
+                            }
+                        })
+
                         this
                     }
                 },
