@@ -4,17 +4,22 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.Matrix
+import android.graphics.Paint
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
@@ -26,19 +31,26 @@ import androidx.fragment.app.Fragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+
+
 
 class ReciteFragment : Fragment() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
-    private var camera: Camera? = null
+    private var camera: androidx.camera.core.Camera? = null
     private var imageCapture: ImageCapture? = null
+    private var imageAnalyzer: ImageAnalysis? = null
     private var capturedBitmap: Bitmap? = null
+    private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
+    private lateinit var textOverlay: TextOverlay
+    private var recognizedText: Text? = null
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -52,14 +64,17 @@ class ReciteFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_recite, container, false)
     }
 
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
         previewView = view.findViewById(R.id.previewView)
         captureButton = view.findViewById(R.id.captureButton)
         imageView = view.findViewById(R.id.imageView)
+        textOverlay = view.findViewById(R.id.textOverlay)
 
         cameraExecutor = Executors.newSingleThreadExecutor()
+        textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
         if (allPermissionsGranted()) {
             startCamera()
@@ -70,28 +85,27 @@ class ReciteFragment : Fragment() {
         captureButton.setOnClickListener { takePhoto() }
 
         previewView.setOnTouchListener { _, event ->
-            val factory = previewView.meteringPointFactory
-            val point = factory.createPoint(event.x, event.y)
-            val action = FocusMeteringAction.Builder(point).build()
-            camera?.cameraControl?.startFocusAndMetering(action)
+            if (event.action == MotionEvent.ACTION_UP) {
+                focusOnPoint(event.x, event.y)
+            }
             true
         }
 
         imageView.setOnTouchListener { _, event ->
-            if (capturedBitmap != null) {
+            if (capturedBitmap != null && recognizedText != null) {
                 val x = event.x.toInt()
                 val y = event.y.toInt()
-                recognizeTextAtPoint(x, y)
+                highlightTextAtPoint(x, y)
             }
             true
         }
     }
 
-    private fun ImageProxy.toBitmap(): Bitmap {
-        val buffer = planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    private fun focusOnPoint(x: Float, y: Float) {
+        val factory = previewView.meteringPointFactory
+        val point = factory.createPoint(x, y)
+        val action = FocusMeteringAction.Builder(point).build()
+        camera?.cameraControl?.startFocusAndMetering(action)
     }
 
     private fun startCamera() {
@@ -102,16 +116,46 @@ class ReciteFragment : Fragment() {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
             imageCapture = ImageCapture.Builder().build()
+            imageAnalyzer = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+                .also {
+                    it.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer { imageProxy ->
+                        processImageProxy(imageProxy)
+                    })
+                }
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             try {
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
+                    viewLifecycleOwner, cameraSelector, preview, imageCapture, imageAnalyzer
                 )
             } catch (exc: Exception) {
                 Toast.makeText(context, "Failed to start camera", Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(requireContext()))
+    }
+
+
+    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+    private fun processImageProxy(imageProxy: ImageProxy) {
+        val mediaImage = imageProxy.image
+        if (mediaImage != null) {
+            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+            textRecognizer.process(image)
+                .addOnSuccessListener { visionText ->
+                    // Process the detected text in real-time
+                    Log.d("TextRecognition", "Detected text: ${visionText.text}")
+                }
+                .addOnFailureListener { e ->
+                    Log.e("TextRecognition", "Error recognizing text", e)
+                }
+                .addOnCompleteListener {
+                    imageProxy.close()
+                }
+        } else {
+            imageProxy.close()
+        }
     }
 
     private fun takePhoto() {
@@ -131,6 +175,7 @@ class ReciteFragment : Fragment() {
                         imageView.setImageBitmap(capturedBitmap)
                         imageView.visibility = View.VISIBLE
                         previewView.visibility = View.GONE
+                        performOCROnCapturedImage()
                     }
                     image.close()
                 }
@@ -142,25 +187,72 @@ class ReciteFragment : Fragment() {
         )
     }
 
-    private fun recognizeTextAtPoint(x: Int, y: Int) {
+    private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
         val image = InputImage.fromBitmap(bitmap, 0)
-        val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        recognizer.process(image)
+        textRecognizer.process(image)
             .addOnSuccessListener { visionText ->
-                for (block in visionText.textBlocks) {
-                    for (line in block.lines) {
-                        if (line.boundingBox?.contains(x, y) == true) {
-                            Toast.makeText(context, "Recognized: ${line.text}", Toast.LENGTH_LONG).show()
-                            return@addOnSuccessListener
-                        }
-                    }
-                }
-                Toast.makeText(context, "No text found at this point", Toast.LENGTH_SHORT).show()
+                recognizedText = visionText
+                drawTextBoundingBoxes(visionText)
             }
             .addOnFailureListener { e ->
                 Toast.makeText(context, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
+    }
+
+    private fun drawTextBoundingBoxes(visionText: Text) {
+        val canvas = Canvas(capturedBitmap!!)
+        val paint = Paint().apply {
+            color = Color.RED
+            style = Paint.Style.STROKE
+            strokeWidth = 2f
+        }
+
+        for (block in visionText.textBlocks) {
+            for (line in block.lines) {
+                line.boundingBox?.let { box ->
+                    canvas.drawRect(box, paint)
+                }
+            }
+        }
+
+        imageView.setImageBitmap(capturedBitmap)
+    }
+
+    private fun highlightTextAtPoint(x: Int, y: Int) {
+        val visionText = recognizedText ?: return
+        for (block in visionText.textBlocks) {
+            for (line in block.lines) {
+                if (line.boundingBox?.contains(x, y) == true) {
+                    highlightText(line)
+                    Toast.makeText(context, "Selected: ${line.text}", Toast.LENGTH_SHORT).show()
+                    return
+                }
+            }
+        }
+    }
+
+    private fun highlightText(textLine: Text.Line) {
+        val highlightedBitmap = capturedBitmap!!.copy(Bitmap.Config.ARGB_8888, true)
+        val canvas = Canvas(highlightedBitmap)
+        val paint = Paint().apply {
+            color = Color.YELLOW
+            alpha = 100
+            style = Paint.Style.FILL
+        }
+
+        textLine.boundingBox?.let { box ->
+            canvas.drawRect(box, paint)
+        }
+
+        imageView.setImageBitmap(highlightedBitmap)
+    }
+
+    private fun ImageProxy.toBitmap(): Bitmap {
+        val buffer = planes[0].buffer
+        val bytes = ByteArray(buffer.remaining())
+        buffer.get(bytes)
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
