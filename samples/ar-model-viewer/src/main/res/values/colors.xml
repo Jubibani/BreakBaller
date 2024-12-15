@@ -18,4 +18,58 @@
     <color name="transparent">#00000000</color>
     <color name="light_gray">#FFDDDDDD</color>
     <color name="dark_gray">#FF333333</color>
+
+    <!-- Material Design colors -->
+    <color name="red">#F44336</color>
+    <color name="pink">#E91E63</color>
+    <color name="purple">#9C27B0</color>
+    <color name="deep_purple">#673AB7</color>
+    <color name="indigo">#3F51B5</color>
+    <color name="blue">#2196F3</color>
+    <color name="light_blue">#03A9F4</color>
+    <color name="cyan">#00BCD4</color>
+    <color name="teal">#009688</color>
+    <color name="green">#4CAF50</color>
+    <color name="light_green">#8BC34A</color>
+    <color name="lime">#CDDC39</color>
+    <color name="yellow">#FFEB3B</color>
+    <color name="amber">#FFC107</color>
+    <color name="orange">#FF9800</color>
+    <color name="deep_orange">#FF5722</color>
+    <color name="brown">#795548</color>
+    <color name="gray">#9E9E9E</color>
+    <color name="blue_gray">#607D8B</color>
+
+    <!-- Additional shades -->
+    <color name="light_red">#FFCDD2</color>
+    <color name="dark_red">#B71C1C</color>
+    <color name="light_green_a200">#69F0AE</color>
+    <color name="dark_green">#1B5E20</color>
+    <color name="light_blue_a200">#40C4FF</color>
+    <color name="dark_blue">#0D47A1</color>
+
+    <!-- Neutral colors -->
+    <color name="off_white">#FAFAFA</color>
+    <color name="light_gray_200">#EEEEEE</color>
+    <color name="medium_gray">#757575</color>
+    <color name="charcoal">#424242</color>
+
+    <!-- Accent colors -->
+    <color name="gold">#FFD700</color>
+    <color name="silver">#C0C0C0</color>
+    <color name="bronze">#CD7F32</color>
+
+    <!-- Pastel colors -->
+    <color name="pastel_pink">#FFB6C1</color>
+    <color name="pastel_blue">#ADD8E6</color>
+    <color name="pastel_green">#98FB98</color>
+    <color name="pastel_yellow">#FFFFE0</color>
+    <color name="pastel_purple">#DCD0FF</color>
+
+    <!-- Vibrant colors -->
+    <color name="vibrant_red">#FF1744</color>
+    <color name="vibrant_green">#00E676</color>
+    <color name="vibrant_blue">#2979FF</color>
+    <color name="vibrant_yellow">#FFEA00</color>
+    <color name="vibrant_purple">#D500F9</color>
 </resources>

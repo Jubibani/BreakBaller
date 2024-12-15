@@ -54,7 +54,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 
 class MainActivity : ComponentActivity() {
@@ -212,8 +215,13 @@ fun MainScreen(
                     fontFamily = MinecraftFontFamily,
                     onClick = {
                         playButtonSound()
-                        val intent = Intent(context, LibraryActivity::class.java)
-                        context.startActivity(intent)
+
+
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay(300L) // Delay
+                            val intent = Intent(context, LibraryActivity::class.java)
+                            context.startActivity(intent)
+                        }
                     }
                 )
 
@@ -225,7 +233,12 @@ fun MainScreen(
                     fontFamily = MinecraftFontFamily,
                     onClick = {
                         playButtonSound()
-                        // Start a practice mode (implement or customize this later)
+                        // Launch a coroutine to handle the delay
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay(500L) // Delay
+                            val intent = Intent(context, PracticeActivity::class.java)
+                            context.startActivity(intent)
+                        }
                     }
                 )
             }
