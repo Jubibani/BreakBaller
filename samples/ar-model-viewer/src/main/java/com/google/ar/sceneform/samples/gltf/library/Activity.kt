@@ -3,7 +3,9 @@ package com.google.ar.sceneform.samples.gltf.library
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -20,6 +22,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var refreshButton: MediaPlayer
     private lateinit var switchButton: SwitchMaterial
+    private lateinit var modeTextView: TextView
     private var isARMode = true
     private val mainFragment by lazy { MainFragment() }
     private val reciteFragment by lazy { ReciteFragment() }
@@ -32,10 +35,16 @@ class Activity : AppCompatActivity(R.layout.activity) {
         refreshButton = MediaPlayer.create(this, R.raw.refresh)
 
         switchButton = findViewById(R.id.switchButton)
+        modeTextView = findViewById(R.id.modeTextView)
+
         switchButton.setOnCheckedChangeListener { _, isChecked ->
             isARMode = !isChecked
+            updateModeUI()
             debouncedUpdateScreen()
         }
+
+        // Initialize the UI
+        updateModeUI()
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
@@ -58,6 +67,17 @@ class Activity : AppCompatActivity(R.layout.activity) {
             }
         }
     }
+
+    private fun updateModeUI() {
+        if (isARMode) {
+            switchButton.setTextColor(ContextCompat.getColor(this, R.color.ar_mode_color))
+            modeTextView.text = "Self-Paced Mode"
+        } else {
+            switchButton.setTextColor(ContextCompat.getColor(this, R.color.recitation_mode_color))
+            modeTextView.text = "Recitation Mode"
+        }
+    }
+
 
     private fun debouncedUpdateScreen() {
         updateJob?.cancel()

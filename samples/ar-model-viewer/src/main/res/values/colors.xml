@@ -75,4 +75,6 @@
 
     <!-- ... other color definitions ... -->
     <color name="switch_track_color">#80FFFFFF</color>
+    <color name="ar_mode_color">#4CAF50</color> <!-- Green -->
+    <color name="recitation_mode_color">#2196F3</color> <!-- Blue -->
 </resources>
