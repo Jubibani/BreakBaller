@@ -3,32 +3,52 @@ package com.google.ar.sceneform.samples.gltf.library.screens
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
-import androidx.viewpager2.widget.ViewPager2
-import com.google.android.material.tabs.TabLayout
-import com.google.android.material.tabs.TabLayoutMediator
 import com.google.ar.sceneform.samples.gltf.R
-import com.google.ar.sceneform.samples.gltf.library.adapters.PracticeViewPagerAdapter
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
@@ -135,65 +155,143 @@ fun PracticeScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            AndroidView(
-                factory = { context ->
-                    LinearLayout(context).apply {
-                        orientation = LinearLayout.VERTICAL
-                        layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.MATCH_PARENT
-                        )
+            var selectedTabIndex by remember { mutableStateOf(0) }
 
-                        val tabLayoutView = TabLayout(context).apply {
-                            tabMode = TabLayout.MODE_FIXED
-                            tabGravity = TabLayout.GRAVITY_FILL
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.WRAP_CONTENT
-                            )
-                            setSelectedTabIndicatorColor(context.getColor(R.color.gold))
-                            setTabTextColors(
-                                context.getColor(R.color.off_white),
-                                context.getColor(R.color.gold)
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = Color(0xFFFFD700) // Gold color for the indicator
+                    )
+                }
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = {
+                            selectedTabIndex = index
+                            playSwitchSound()
+                        },
+                        text = {
+                            Text(
+                                text = title,
+                                color = if (selectedTabIndex == index) Color(0xFFFFD700) else MaterialTheme.colorScheme.onPrimaryContainer
                             )
                         }
-                        addView(tabLayoutView)
+                    )
+                }
+            }
 
-                        val viewPagerView = ViewPager2(context).apply {
-                            layoutParams = LinearLayout.LayoutParams(
-                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                LinearLayout.LayoutParams.MATCH_PARENT
-                            ).apply {
-                                weight = 1f
-                            }
-                            adapter = PracticeViewPagerAdapter(context as FragmentActivity)
-                        }
-                        addView(viewPagerView)
+            when (selectedTabIndex) {
+                0 -> LearnAndEarnContent(playSwitchSound)
+                1 -> RewardsContent(playSwitchSound)
+            }
+        }
+    }
+}
+data class PracticeItemData(
+    val name: String,
+    val description: String,
+    val imageResId: Int,
+    val onClickAction: () -> Unit
+)
+@Composable
+fun LearnAndEarnContent(playSwitchSound: () -> Unit) {
+    val context = LocalContext.current
+    val learnItems = remember {
+        listOf(
+            PracticeItemData("Quiz Challenge", "Test your knowledge", R.drawable.quiz_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Starting Quiz Challenge", Toast.LENGTH_SHORT).show()
+                // Add intent to start Quiz activity
+            },
+            PracticeItemData("Flashcards", "Review key concepts", R.drawable.flashcard_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Opening Flashcards", Toast.LENGTH_SHORT).show()
+                // Add intent to start Flashcards activity
+            },
+            PracticeItemData("AR Practice", "Learn with augmented reality", R.drawable.quiz_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Launching AR Practice", Toast.LENGTH_SHORT).show()
+                // Add intent to start AR Practice activity
+            }
+        )
+    }
 
-                        TabLayoutMediator(tabLayoutView, viewPagerView) { tab, position ->
-                            tab.text = tabTitles[position]
-                        }.attach()
+    LazyColumn {
+        items(learnItems) { item ->
+            PracticeItemCard(item)
+        }
+    }
+}
 
-                        // Set up listeners for both TabLayout and ViewPager2
-                        tabLayoutView.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
-                            override fun onTabSelected(tab: TabLayout.Tab?) {
-                                playSwitchSound()
-                            }
-                            override fun onTabUnselected(tab: TabLayout.Tab?) {}
-                            override fun onTabReselected(tab: TabLayout.Tab?) {}
-                        })
+@Composable
+fun RewardsContent(playSwitchSound: () -> Unit) {
+    val context = LocalContext.current
+    val rewardItems = remember {
+        listOf(
+            PracticeItemData("Achievements", "View your accomplishments", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+                // Add intent to start Achievements activity
+            },
+            PracticeItemData("Leaderboard", "See how you rank", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Opening Leaderboard", Toast.LENGTH_SHORT).show()
+                // Add intent to start Leaderboard activity
+            },
+            PracticeItemData("Redeem Points", "Use your earned points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Redeeming Points", Toast.LENGTH_SHORT).show()
+                // Add intent to start Redeem Points activity
+            }
+        )
+    }
 
-                        viewPagerView.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-                            override fun onPageSelected(position: Int) {
-                                playSwitchSound()
-                            }
-                        })
+    LazyColumn {
+        items(rewardItems) { item ->
+            PracticeItemCard(item)
+        }
+    }
+}
 
-                        this
-                    }
-                },
-                modifier = Modifier.fillMaxSize()
+@Composable
+fun PracticeItemCard(item: PracticeItemData) {
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clickable(onClick = item.onClickAction),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = item.imageResId),
+                contentDescription = "Icon for ${item.name}",
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(8.dp))
             )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = item.description,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         }
     }
 }
