@@ -32,7 +32,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 class ReciteFragment : Fragment() {
-
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
     private lateinit var captureButton: FloatingActionButton
@@ -49,7 +48,6 @@ class ReciteFragment : Fragment() {
         }
     }
 
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_recite, container, false)
     }
@@ -60,12 +58,13 @@ class ReciteFragment : Fragment() {
         previewView = view.findViewById(R.id.previewView)
         captureButton = view.findViewById(R.id.captureButton)
         imageView = view.findViewById(R.id.imageView)
+
         cameraExecutor = Executors.newSingleThreadExecutor()
 
         if (allPermissionsGranted()) {
             startCamera()
         } else {
-            requestPermissions(REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
+            requestPermissionLauncher.launch(REQUIRED_PERMISSIONS)
         }
 
         captureButton.setOnClickListener { takePhoto() }
@@ -87,26 +86,23 @@ class ReciteFragment : Fragment() {
             true
         }
     }
+
     private fun ImageProxy.toBitmap(): Bitmap {
         val buffer = planes[0].buffer
         val bytes = ByteArray(buffer.remaining())
         buffer.get(bytes)
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
+
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
-
             imageCapture = ImageCapture.Builder().build()
-
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             try {
                 cameraProvider.unbindAll()
                 camera = cameraProvider.bindToLifecycle(
@@ -115,13 +111,11 @@ class ReciteFragment : Fragment() {
             } catch (exc: Exception) {
                 Toast.makeText(context, "Failed to start camera", Toast.LENGTH_SHORT).show()
             }
-
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     private fun takePhoto() {
         val imageCapture = imageCapture ?: return
-
         imageCapture.takePicture(
             ContextCompat.getMainExecutor(requireContext()),
             object : ImageCapture.OnImageCapturedCallback() {
@@ -151,7 +145,6 @@ class ReciteFragment : Fragment() {
     private fun recognizeTextAtPoint(x: Int, y: Int) {
         val bitmap = capturedBitmap ?: return
         val image = InputImage.fromBitmap(bitmap, 0)
-
         val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
         recognizer.process(image)
             .addOnSuccessListener { visionText ->
@@ -174,23 +167,12 @@ class ReciteFragment : Fragment() {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        if (requestCode == REQUEST_CODE_PERMISSIONS) {
-            if (allPermissionsGranted()) {
-                startCamera()
-            } else {
-                Toast.makeText(context, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
     }
 
     companion object {
-        private const val REQUEST_CODE_PERMISSIONS = 10
         private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
     }
 }
