@@ -72,4 +72,7 @@
     <color name="vibrant_blue">#2979FF</color>
     <color name="vibrant_yellow">#FFEA00</color>
     <color name="vibrant_purple">#D500F9</color>
+
+    <!-- ... other color definitions ... -->
+    <color name="switch_track_color">#80FFFFFF</color>
 </resources>

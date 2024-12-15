@@ -52,6 +52,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 import kotlinx.coroutines.CoroutineScope
@@ -66,11 +67,14 @@ class MainActivity : ComponentActivity() {
     //sounds
     private lateinit var mediaPlayer: MediaPlayer
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Initialize MediaPlayer
         mediaPlayer = MediaPlayer.create(this, R.raw.ui)
+
 
         setContent {
             AugmentEDTheme {

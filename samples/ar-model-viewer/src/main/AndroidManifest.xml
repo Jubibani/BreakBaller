@@ -52,7 +52,7 @@
 <!--        </activity>-->
 
 
-        <!--Main Activity-->
+<!--        Main Activity-->
         <activity
             android:name=".library.screens.MainActivity"
             android:configChanges="orientation|screenSize"

@@ -4,14 +4,26 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.commit
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.screens.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class Activity : AppCompatActivity(R.layout.activity) {
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var refreshButton: MediaPlayer
+    private lateinit var switchButton: SwitchMaterial
+    private var isARMode = true
+    private val mainFragment by lazy { MainFragment() }
+    private val reciteFragment by lazy { ReciteFragment() }
+    private var updateJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -19,10 +31,15 @@ class Activity : AppCompatActivity(R.layout.activity) {
         mediaPlayer = MediaPlayer.create(this, R.raw.back)
         refreshButton = MediaPlayer.create(this, R.raw.refresh)
 
+        switchButton = findViewById(R.id.switchButton)
+        switchButton.setOnCheckedChangeListener { _, isChecked ->
+            isARMode = !isChecked
+            debouncedUpdateScreen()
+        }
 
         if (savedInstanceState == null) {
             supportFragmentManager.commit {
-                add(R.id.containerFragment, MainFragment::class.java, Bundle())
+                add(R.id.containerFragment, mainFragment)
             }
         }
 
@@ -36,13 +53,33 @@ class Activity : AppCompatActivity(R.layout.activity) {
 
         findViewById<FloatingActionButton>(R.id.refreshButton).setOnClickListener {
             refreshButton.start()
-            restartFragment()
+            if (isARMode) {
+                restartFragment()
+            }
         }
     }
 
+    private fun debouncedUpdateScreen() {
+        updateJob?.cancel()
+        updateJob = CoroutineScope(Dispatchers.Main).launch {
+            delay(300) // Debounce for 300ms
+            updateScreen()
+        }
+    }
+
+    private fun updateScreen() {
+        val newFragment: Fragment = if (isARMode) mainFragment else reciteFragment
+        supportFragmentManager.beginTransaction().apply {
+            replace(R.id.containerFragment, newFragment)
+            commitNow()
+        }
+        findViewById<FloatingActionButton>(R.id.refreshButton).isEnabled = isARMode
+    }
+
     private fun restartFragment() {
-        supportFragmentManager.commit {
-            replace(R.id.containerFragment, MainFragment::class.java, Bundle())
+        supportFragmentManager.beginTransaction().apply {
+            replace(R.id.containerFragment, MainFragment())
+            commitNow()
         }
     }
 
@@ -50,5 +87,6 @@ class Activity : AppCompatActivity(R.layout.activity) {
         super.onDestroy()
         mediaPlayer.release()
         refreshButton.release()
+        updateJob?.cancel()
     }
 }
