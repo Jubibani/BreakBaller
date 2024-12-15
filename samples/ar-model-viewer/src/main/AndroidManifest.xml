@@ -39,7 +39,7 @@
             android:value="required" />
 
 
-        <!--Splash Activity-->
+<!--        &lt;!&ndash;Splash Activity&ndash;&gt;-->
 <!--        <activity-->
 <!--            android:name=".library.screens.SplashActivity"-->
 <!--            android:configChanges="orientation|screenSize"-->
@@ -79,6 +79,17 @@
             android:name=".library.screens.LibraryActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true">
+        </activity>
+
+        <!--Practice Activity-->
+        <activity
+            android:name=".library.screens.PracticeActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true">
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
         </activity>
 
 
