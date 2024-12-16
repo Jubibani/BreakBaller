@@ -52,7 +52,7 @@ class ReciteFragment : Fragment() {
     private var recognizedText: Text? = null
 
     //reset
-    private lateinit var resetButton: FloatingActionButton
+    private lateinit var refreshButton: FloatingActionButton
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -79,9 +79,9 @@ class ReciteFragment : Fragment() {
         textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
         //reset
-        resetButton = view.findViewById(R.id.fragmentRefreshButton)
-        resetButton.visibility = View.VISIBLE
-        resetButton.setOnClickListener { resetCamera() }
+        refreshButton = view.findViewById(R.id.fragmentRefreshButton)
+        refreshButton.visibility = View.VISIBLE
+        refreshButton.setOnClickListener { resetCamera() }
 
         if (allPermissionsGranted()) {
             startCamera()
@@ -146,7 +146,6 @@ class ReciteFragment : Fragment() {
     private fun resetCamera() {
         imageView.visibility = View.GONE
         previewView.visibility = View.VISIBLE
-        resetButton.visibility = View.GONE
         capturedBitmap = null
         recognizedText = null
         textOverlay.recognizedText = null  // Reset the recognized text in TextOverlay
@@ -193,7 +192,6 @@ class ReciteFragment : Fragment() {
                         imageView.setImageBitmap(capturedBitmap)
                         imageView.visibility = View.VISIBLE
                         previewView.visibility = View.GONE
-                        resetButton.visibility = View.VISIBLE  // Show reset button
                         performOCROnCapturedImage()
                     }
                     image.close()
