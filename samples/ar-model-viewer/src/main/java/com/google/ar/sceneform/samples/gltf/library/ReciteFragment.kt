@@ -59,6 +59,9 @@ class ReciteFragment : Fragment() {
     private lateinit var refreshButton: FloatingActionButton
     private lateinit var refreshSound: MediaPlayer
 
+    //close
+    private lateinit var closeButton: FloatingActionButton
+
     //speech recognition
     private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
     private lateinit var startRecitingButton: FloatingActionButton
@@ -101,6 +104,10 @@ class ReciteFragment : Fragment() {
                 refreshSound.start()
                 resetCamera()
             }
+
+            //close
+            closeButton = view.findViewById(R.id.closeButton)
+
 
 
 
@@ -228,7 +235,20 @@ class ReciteFragment : Fragment() {
                         imageView.setImageBitmap(capturedBitmap)
                         imageView.visibility = View.VISIBLE
                         previewView.visibility = View.GONE
+
+                        // Hide all buttons except close button
+                        captureButton.visibility = View.GONE
+                        refreshButton.visibility = View.GONE
+                        showCloseButton()
+
                         performOCROnCapturedImage()
+
+                        // Set up the click listener for the close button
+                        closeButton.setOnClickListener {
+                            resetCamera()
+                            hideCloseButton()
+                            showRecitationButtons() // Show all buttons for recitation mode
+                        }
                     }
                     image.close()
                 }
@@ -238,6 +258,13 @@ class ReciteFragment : Fragment() {
                 }
             }
         )
+    }
+
+    // Add this function to show all buttons for recitation mode
+    private fun showRecitationButtons() {
+        captureButton.visibility = View.VISIBLE
+        refreshButton.visibility = View.VISIBLE
+        // Add any other buttons that should be visible in recitation mode
     }
 
     //speech recognition
@@ -266,7 +293,13 @@ class ReciteFragment : Fragment() {
         }
         startActivity(intent)
     }
+    private fun showCloseButton() {
+        closeButton.visibility = View.VISIBLE
+    }
 
+    private fun hideCloseButton() {
+        closeButton.visibility = View.GONE
+    }
     private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
         val image = InputImage.fromBitmap(bitmap, 0)
