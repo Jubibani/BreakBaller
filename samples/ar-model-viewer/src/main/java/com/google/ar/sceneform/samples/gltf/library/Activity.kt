@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 class Activity : AppCompatActivity(R.layout.activity) {
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var refreshSound: MediaPlayer
+    private lateinit var switchSound: MediaPlayer
+
     private lateinit var switchButton: SwitchMaterial
     private lateinit var modeTextView: TextView
     private lateinit var refreshButton: FloatingActionButton
@@ -36,7 +38,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
 
         mediaPlayer = MediaPlayer.create(this, R.raw.back)
         refreshSound = MediaPlayer.create(this, R.raw.refresh)
-
+        switchSound = MediaPlayer.create(this, R.raw.on)
         switchButton = findViewById(R.id.switchButton)
         modeTextView = findViewById(R.id.modeTextView)
         refreshButton = findViewById(R.id.refreshButton)
@@ -45,6 +47,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
             isARMode = !isChecked
             updateModeUI()
             debouncedUpdateScreen()
+            switchSound.start()
         }
 
         // Initialize the UI
@@ -85,10 +88,12 @@ class Activity : AppCompatActivity(R.layout.activity) {
 
     private fun updateModeUI() {
         if (isARMode) {
-            switchButton.setTextColor(ContextCompat.getColor(this, R.color.ar_mode_color))
+            switchButton.thumbTintList = ContextCompat.getColorStateList(this, R.color.purple_500)
+            switchButton.trackTintList = ContextCompat.getColorStateList(this, R.color.purple_500)
             modeTextView.text = "Self-Paced Mode"
         } else {
-            switchButton.setTextColor(ContextCompat.getColor(this, R.color.recitation_mode_color))
+            switchButton.thumbTintList = ContextCompat.getColorStateList(this, R.color.gold)
+            switchButton.trackTintList = ContextCompat.getColorStateList(this, R.color.gold)
             modeTextView.text = "Recitation Mode"
         }
     }
@@ -121,6 +126,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
         super.onDestroy()
         mediaPlayer.release()
         refreshSound.release()
+        switchSound.release()
         updateJob?.cancel()
     }
 }

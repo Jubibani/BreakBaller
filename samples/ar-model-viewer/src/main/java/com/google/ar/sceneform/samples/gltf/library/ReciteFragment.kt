@@ -9,6 +9,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -56,10 +57,12 @@ class ReciteFragment : Fragment() {
 
     //reset
     private lateinit var refreshButton: FloatingActionButton
+    private lateinit var refreshSound: MediaPlayer
 
     //speech recognition
     private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
     private lateinit var startRecitingButton: FloatingActionButton
+
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -71,6 +74,8 @@ class ReciteFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_recite, container, false)
+
+
     }
 
 
@@ -84,11 +89,16 @@ class ReciteFragment : Fragment() {
 
         cameraExecutor = Executors.newSingleThreadExecutor()
         textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+        speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
 
         //reset
         refreshButton = view.findViewById(R.id.fragmentRefreshButton)
         refreshButton.visibility = View.VISIBLE
-        refreshButton.setOnClickListener { resetCamera() }
+        refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+        refreshButton.setOnClickListener {
+            refreshSound.start()
+            resetCamera()
+        }
 
 
 
@@ -306,6 +316,7 @@ class ReciteFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        refreshSound.release()
         cameraExecutor.shutdown()
         speechRecognitionHelper.destroy()
     }
