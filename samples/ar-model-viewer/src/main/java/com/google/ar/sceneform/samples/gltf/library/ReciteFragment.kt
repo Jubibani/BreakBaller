@@ -82,34 +82,52 @@ class ReciteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        previewView = view.findViewById(R.id.previewView)
-        captureButton = view.findViewById(R.id.captureButton)
-        imageView = view.findViewById(R.id.imageView)
-        textOverlay = view.findViewById(R.id.textOverlay)
 
-        cameraExecutor = Executors.newSingleThreadExecutor()
-        textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-        speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
+        try {
+            previewView = view.findViewById(R.id.previewView) ?: throw NullPointerException("PreviewView not found")
+            captureButton = view.findViewById(R.id.captureButton) ?: throw NullPointerException("Capture button not found")
+            imageView = view.findViewById(R.id.imageView) ?: throw NullPointerException("ImageView not found")
+            textOverlay = view.findViewById(R.id.textOverlay) ?: throw NullPointerException("TextOverlay not found")
 
-        //reset
-        refreshButton = view.findViewById(R.id.fragmentRefreshButton)
-        refreshButton.visibility = View.VISIBLE
-        refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
-        refreshButton.setOnClickListener {
-            refreshSound.start()
-            resetCamera()
+            cameraExecutor = Executors.newSingleThreadExecutor()
+            textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+            speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
+
+            // Reset
+            refreshButton = view.findViewById(R.id.fragmentRefreshButton) ?: throw NullPointerException("Refresh button not found")
+            refreshButton.visibility = View.VISIBLE
+            refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+            refreshButton.setOnClickListener {
+                refreshSound.start()
+                resetCamera()
+            }
+
+
+
+            if (allPermissionsGranted()) {
+                startCamera()
+            } else {
+                requestPermissionLauncher.launch(REQUIRED_PERMISSIONS)
+            }
+
+            // take camera and perform text recognition and speech recognition
+            captureButton.setOnClickListener {
+                takePhoto()
+                startReciting()
+            } ?: throw NullPointerException("Start reciting button not found")
+
+            setupTouchListeners()
+
+        } catch (e: NullPointerException) {
+            Log.e("ReciteFragment", "Error initializing views: ${e.message}")
+            Toast.makeText(context, "Error initializing views: ${e.message}", Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            Log.e("ReciteFragment", "Unexpected error: ${e.message}")
+            Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
 
-
-
-        if (allPermissionsGranted()) {
-            startCamera()
-        } else {
-            requestPermissionLauncher.launch(REQUIRED_PERMISSIONS)
-        }
-
-        captureButton.setOnClickListener { takePhoto() }
-
+    private fun setupTouchListeners() {
         previewView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_UP) {
                 focusOnPoint(event.x, event.y)
@@ -127,26 +145,6 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    //speech recognition
-    private fun startReciting() {
-        recognizedText?.let { text ->
-            speechRecognitionHelper.setReferenceText(text.text)
-            speechRecognitionHelper.startListening()
-            // Update UI to show reciting has started
-        }
-    }
-
-    private fun stopReciting() {
-        speechRecognitionHelper.stopListening()
-        val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
-        // Start PracticeActivity with results
-        val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
-            putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
-            putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
-            putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
-        }
-        startActivity(intent)
-    }
     private fun focusOnPoint(x: Float, y: Float) {
         val factory = previewView.meteringPointFactory
         val point = factory.createPoint(x, y)
@@ -242,6 +240,33 @@ class ReciteFragment : Fragment() {
         )
     }
 
+    //speech recognition
+    private fun startReciting() {
+        recognizedText?.let { text ->
+            speechRecognitionHelper.setReferenceText(text.text)
+            speechRecognitionHelper.startListening()
+            Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // Add this function to handle the refresh button click
+    private fun onRefreshButtonClick() {
+        stopReciting()
+        resetCamera()
+    }
+
+    private fun stopReciting() {
+        speechRecognitionHelper.stopListening()
+        val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
+        // Start PracticeActivity with results
+        val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
+            putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
+            putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
+            putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
+        }
+        startActivity(intent)
+    }
+
     private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
         val image = InputImage.fromBitmap(bitmap, 0)
@@ -249,6 +274,7 @@ class ReciteFragment : Fragment() {
             .addOnSuccessListener { visionText ->
                 recognizedText = visionText
                 drawTextBoundingBoxes(visionText)
+                startReciting() // Start reciting after OCR is complete
             }
             .addOnFailureListener { e ->
                 Toast.makeText(context, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
