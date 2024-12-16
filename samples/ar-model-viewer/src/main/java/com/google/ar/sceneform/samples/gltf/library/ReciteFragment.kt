@@ -31,6 +31,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
 import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
@@ -62,6 +63,8 @@ class ReciteFragment : Fragment() {
     //close
     private lateinit var closeButton: FloatingActionButton
 
+    //switch button
+    private lateinit var switchButton: SwitchMaterial
     //speech recognition
     private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
     private lateinit var startRecitingButton: FloatingActionButton
@@ -108,6 +111,8 @@ class ReciteFragment : Fragment() {
             //close
             closeButton = view.findViewById(R.id.closeButton)
 
+            //switch
+            switchButton = requireActivity().findViewById(R.id.switchButton)
 
 
 
@@ -239,6 +244,7 @@ class ReciteFragment : Fragment() {
                         // Hide all buttons except close button
                         captureButton.visibility = View.GONE
                         refreshButton.visibility = View.GONE
+                        switchButton.visibility = View.GONE
                         showCloseButton()
 
                         performOCROnCapturedImage()
@@ -264,6 +270,7 @@ class ReciteFragment : Fragment() {
     private fun showRecitationButtons() {
         captureButton.visibility = View.VISIBLE
         refreshButton.visibility = View.VISIBLE
+        switchButton.visibility = View.VISIBLE
         // Add any other buttons that should be visible in recitation mode
     }
 
