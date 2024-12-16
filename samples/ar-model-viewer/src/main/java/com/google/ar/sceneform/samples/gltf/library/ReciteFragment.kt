@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -30,6 +31,8 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.sceneform.samples.gltf.R
+import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
+import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -53,6 +56,10 @@ class ReciteFragment : Fragment() {
 
     //reset
     private lateinit var refreshButton: FloatingActionButton
+
+    //speech recognition
+    private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
+    private lateinit var startRecitingButton: FloatingActionButton
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -83,6 +90,8 @@ class ReciteFragment : Fragment() {
         refreshButton.visibility = View.VISIBLE
         refreshButton.setOnClickListener { resetCamera() }
 
+
+
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -108,7 +117,26 @@ class ReciteFragment : Fragment() {
         }
     }
 
+    //speech recognition
+    private fun startReciting() {
+        recognizedText?.let { text ->
+            speechRecognitionHelper.setReferenceText(text.text)
+            speechRecognitionHelper.startListening()
+            // Update UI to show reciting has started
+        }
+    }
 
+    private fun stopReciting() {
+        speechRecognitionHelper.stopListening()
+        val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
+        // Start PracticeActivity with results
+        val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
+            putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
+            putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
+            putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
+        }
+        startActivity(intent)
+    }
     private fun focusOnPoint(x: Float, y: Float) {
         val factory = previewView.meteringPointFactory
         val point = factory.createPoint(x, y)
@@ -279,6 +307,7 @@ class ReciteFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        speechRecognitionHelper.destroy()
     }
 
     companion object {

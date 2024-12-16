@@ -52,6 +52,7 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
+
 class PracticeActivity : FragmentActivity() {
     private var backSound: MediaPlayer? = null
     private var switchSound: MediaPlayer? = null
