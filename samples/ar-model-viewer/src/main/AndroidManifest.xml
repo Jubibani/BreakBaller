@@ -8,6 +8,9 @@
     <!-- Needed to load gltf from network. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--Speech Recog-->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!--Haptic Feedback-->
     <uses-permission android:name="android.permission.VIBRATE" />
 
@@ -52,9 +55,22 @@
 <!--        </activity>-->
 
 
-        <!--Main Activity-->
+<!--&lt;!&ndash;        Main Activity&ndash;&gt;-->
+<!--        <activity-->
+<!--            android:name=".library.screens.MainActivity"-->
+<!--            android:configChanges="orientation|screenSize"-->
+<!--            android:exported="true"-->
+<!--            android:screenOrientation="locked">-->
+<!--&lt;!&ndash;            <intent-filter>&ndash;&gt;-->
+<!--&lt;!&ndash;                <action android:name="android.intent.action.MAIN" />&ndash;&gt;-->
+<!--&lt;!&ndash;                <category android:name="android.intent.category.LAUNCHER" />&ndash;&gt;-->
+<!--&lt;!&ndash;            </intent-filter>&ndash;&gt;-->
+<!--        </activity>-->
+
+
+        <!--Activity-->
         <activity
-            android:name=".library.screens.MainActivity"
+            android:name=".library.Activity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:screenOrientation="locked">
@@ -64,15 +80,26 @@
             </intent-filter>
         </activity>
 
+        <!--component: SpeechRecognition-->
+<!--        <activity-->
+<!--            android:name=".library.components.SpeechRecognitionActivity"-->
+<!--            android:configChanges="orientation|screenSize"-->
+<!--&lt;!&ndash;            android:exported="true">&ndash;&gt;-->
+<!--&lt;!&ndash;            <intent-filter>&ndash;&gt;-->
+<!--&lt;!&ndash;                <action android:name="android.intent.action.MAIN" />&ndash;&gt;-->
+<!--&lt;!&ndash;                <category android:name="android.intent.category.LAUNCHER" />&ndash;&gt;-->
+<!--&lt;!&ndash;            </intent-filter>&ndash;&gt;-->
+<!--&lt;!&ndash;        </activity>&ndash;&gt;-->
 
-        <!--Activity-->
-        <activity
-            android:name=".library.Activity"
-            android:configChanges="orientation|screenSize"
-            android:exported="true"
-            android:screenOrientation="locked">
-        </activity>
-
+<!--        &lt;!&ndash;component: SpeechRecognition (2)&ndash;&gt;-->
+<!--        <activity-->
+<!--            android:name=".library.components.CameraSpeechActivity"-->
+<!--            android:exported="true">-->
+<!--            <intent-filter>-->
+<!--                <action android:name="android.intent.action.MAIN" />-->
+<!--                <category android:name="android.intent.category.LAUNCHER" />-->
+<!--            </intent-filter>-->
+<!--        </activity>-->
 
         <!--Library Activity-->
         <activity
