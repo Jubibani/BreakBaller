@@ -8,6 +8,9 @@
     <!-- Needed to load gltf from network. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!--Speech Recog-->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
     <!--Haptic Feedback-->
     <uses-permission android:name="android.permission.VIBRATE" />
 

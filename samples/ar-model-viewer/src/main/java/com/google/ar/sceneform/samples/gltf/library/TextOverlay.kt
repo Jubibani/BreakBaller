@@ -13,18 +13,22 @@ class TextOverlay @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
-
     private val paint = Paint().apply {
         color = Color.RED
         style = Paint.Style.STROKE
         strokeWidth = 2f
     }
 
-    private var recognizedText: Text? = null
+    var recognizedText: Text? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
 
-    fun setRecognizedText(text: Text) {
+    // If you still want to keep a separate function, rename it to avoid conflict
+    fun updateRecognizedText(text: Text) {
         recognizedText = text
-        invalidate()
+        // No need to call invalidate() here as it's called in the setter
     }
 
     override fun onDraw(canvas: Canvas) {

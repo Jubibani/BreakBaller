@@ -29,6 +29,7 @@ android {
     }
     buildFeatures {
         compose true
+        viewBinding true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.5.4'
@@ -93,6 +94,9 @@ dependencies {
 
     // Text recognition
     implementation 'com.google.mlkit:text-recognition:16.0.0'
+
+    // Speech recognition
+    implementation 'com.alphacephei:vosk-android:0.3.32'
 
     // Camera
     implementation "androidx.camera:camera-core:1.1.0-beta01"

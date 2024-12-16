@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 
-
 class ReciteFragment : Fragment() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
@@ -51,6 +50,9 @@ class ReciteFragment : Fragment() {
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
     private var recognizedText: Text? = null
+
+    //reset
+    private lateinit var resetButton: FloatingActionButton
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -76,6 +78,11 @@ class ReciteFragment : Fragment() {
         cameraExecutor = Executors.newSingleThreadExecutor()
         textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
 
+        //reset
+        resetButton = view.findViewById(R.id.fragmentRefreshButton)
+        resetButton.visibility = View.VISIBLE
+        resetButton.setOnClickListener { resetCamera() }
+
         if (allPermissionsGranted()) {
             startCamera()
         } else {
@@ -100,6 +107,7 @@ class ReciteFragment : Fragment() {
             true
         }
     }
+
 
     private fun focusOnPoint(x: Float, y: Float) {
         val factory = previewView.meteringPointFactory
@@ -134,6 +142,16 @@ class ReciteFragment : Fragment() {
                 Toast.makeText(context, "Failed to start camera", Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(requireContext()))
+    }
+    private fun resetCamera() {
+        imageView.visibility = View.GONE
+        previewView.visibility = View.VISIBLE
+        resetButton.visibility = View.GONE
+        capturedBitmap = null
+        recognizedText = null
+        textOverlay.recognizedText = null  // Reset the recognized text in TextOverlay
+        textOverlay.invalidate()  // Force redraw of the TextOverlay
+        startCamera()  // Restart the camera
     }
 
 
@@ -175,6 +193,7 @@ class ReciteFragment : Fragment() {
                         imageView.setImageBitmap(capturedBitmap)
                         imageView.visibility = View.VISIBLE
                         previewView.visibility = View.GONE
+                        resetButton.visibility = View.VISIBLE  // Show reset button
                         performOCROnCapturedImage()
                     }
                     image.close()

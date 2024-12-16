@@ -3,10 +3,12 @@ package com.google.ar.sceneform.samples.gltf.library
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
 import androidx.fragment.app.commit
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
@@ -20,9 +22,10 @@ import kotlinx.coroutines.launch
 
 class Activity : AppCompatActivity(R.layout.activity) {
     private lateinit var mediaPlayer: MediaPlayer
-    private lateinit var refreshButton: MediaPlayer
+    private lateinit var refreshSound: MediaPlayer
     private lateinit var switchButton: SwitchMaterial
     private lateinit var modeTextView: TextView
+    private lateinit var refreshButton: FloatingActionButton
     private var isARMode = true
     private val mainFragment by lazy { MainFragment() }
     private val reciteFragment by lazy { ReciteFragment() }
@@ -32,10 +35,11 @@ class Activity : AppCompatActivity(R.layout.activity) {
         super.onCreate(savedInstanceState)
 
         mediaPlayer = MediaPlayer.create(this, R.raw.back)
-        refreshButton = MediaPlayer.create(this, R.raw.refresh)
+        refreshSound = MediaPlayer.create(this, R.raw.refresh)
 
         switchButton = findViewById(R.id.switchButton)
         modeTextView = findViewById(R.id.modeTextView)
+        refreshButton = findViewById(R.id.refreshButton)
 
         switchButton.setOnCheckedChangeListener { _, isChecked ->
             isARMode = !isChecked
@@ -60,12 +64,23 @@ class Activity : AppCompatActivity(R.layout.activity) {
             finish()
         }
 
-        findViewById<FloatingActionButton>(R.id.refreshButton).setOnClickListener {
-            refreshButton.start()
+        refreshButton.setOnClickListener {
+            refreshSound.start()
             if (isARMode) {
                 restartFragment()
             }
         }
+
+        supportFragmentManager.registerFragmentLifecycleCallbacks(object : FragmentManager.FragmentLifecycleCallbacks() {
+            override fun onFragmentResumed(fm: FragmentManager, f: Fragment) {
+                super.onFragmentResumed(fm, f)
+                if (f is ReciteFragment) {
+                    refreshButton.visibility = View.GONE
+                } else {
+                    refreshButton.visibility = View.VISIBLE
+                }
+            }
+        }, true)
     }
 
     private fun updateModeUI() {
@@ -77,7 +92,6 @@ class Activity : AppCompatActivity(R.layout.activity) {
             modeTextView.text = "Recitation Mode"
         }
     }
-
 
     private fun debouncedUpdateScreen() {
         updateJob?.cancel()
@@ -93,7 +107,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
             replace(R.id.containerFragment, newFragment)
             commitNow()
         }
-        findViewById<FloatingActionButton>(R.id.refreshButton).isEnabled = isARMode
+        refreshButton.isEnabled = isARMode
     }
 
     private fun restartFragment() {
@@ -106,7 +120,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
     override fun onDestroy() {
         super.onDestroy()
         mediaPlayer.release()
-        refreshButton.release()
+        refreshSound.release()
         updateJob?.cancel()
     }
 }
