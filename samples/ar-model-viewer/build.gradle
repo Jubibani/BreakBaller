@@ -117,6 +117,10 @@ dependencies {
     //database
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
+    implementation "androidx.room:room-ktx:2.5.1"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.5.1"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.5.1"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
 
     // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
     // See KSP Quickstart to add KSP to your build

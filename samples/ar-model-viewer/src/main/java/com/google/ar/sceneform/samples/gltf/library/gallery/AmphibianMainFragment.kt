@@ -28,6 +28,13 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
 import com.gorisse.thomas.sceneform.scene.await
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Observer
+import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
+import com.google.ar.sceneform.samples.gltf.library.data.viewmodel.ModelViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class AmphibianMainFragment : Fragment(R.layout.fragment_main) {
 
@@ -37,6 +44,9 @@ class AmphibianMainFragment : Fragment(R.layout.fragment_main) {
 
     private var model: Renderable? = null
     private var modelView: ViewRenderable? = null
+
+    // ViewModel instance (db) -> 1
+    private val modelViewModel: ModelViewModel by viewModels()
 
     //sounds
     private lateinit var mediaPlayer: MediaPlayer

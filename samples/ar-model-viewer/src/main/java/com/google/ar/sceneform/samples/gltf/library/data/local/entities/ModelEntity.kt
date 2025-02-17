@@ -5,9 +5,9 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "models")
 data class ModelEntity(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val name: String,  // e.g., "Amphibian"
-    val modelPath: String, // e.g., "models/amphibian.glb"
-    val soundPath: String, // e.g., "R.raw.froggy"
-    val description: String  // Optional, for displaying info
+    @PrimaryKey val name: String,
+    val modelPath: String,  // Path to .glb file (e.g., "models/heart.glb")
+    val layoutResId: Int,   // Corresponding UI layout (e.g., R.layout.heart_info)
+    val interactionPrompt: String,
+    val interactionSoundResId: Int
 )
