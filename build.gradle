@@ -31,6 +31,8 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // Maven Central Publish
         classpath "com.vanniktech:gradle-maven-publish-plugin:0.18.0"
+        //ksp
+        classpath "com.google.devtools.ksp:com.google.devtools.ksp.gradle.plugin:1.9.20-1.0.14"
     }
 }
 
