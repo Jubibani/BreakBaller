@@ -362,29 +362,3 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         off.release()
     }
 }
-
-//Tap Functionality
-
-//    private fun onTapPlane(hitResult: HitResult, plane: Plane, motionEvent: MotionEvent) {
-//        if (model == null || modelView == null) {
-//            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
-//            return
-//        }
-//
-//        // Create the Anchor.
-//        scene.addChild(AnchorNode(hitResult.createAnchor()).apply {
-//            // Create the transformable model and add it to the anchor.
-//            addChild(TransformableNode(arFragment.transformationSystem).apply {
-//                renderable = model
-//                renderableInstance.setCulling(false)
-//                renderableInstance.animate(true).start()
-//                // Add the View
-//                addChild(Node().apply {
-//                    // Define the relative position
-//                    localPosition = Vector3(0.0f, 1f, 0.0f)
-//                    localScale = Vector3(0.7f, 0.7f, 0.7f)
-//                    renderable = modelView
-//                })
-//            })
-//        })
-//    }
