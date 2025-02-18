@@ -1,10 +1,9 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
+import LibraryFragment
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
-import android.widget.Toast
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -38,39 +37,48 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
-import com.google.ar.sceneform.samples.gltf.library.gallery.AmphibianActivity
-import com.google.ar.sceneform.samples.gltf.library.gallery.BacteriaActivity
-import com.google.ar.sceneform.samples.gltf.library.gallery.DigestiveActivity
-import com.google.ar.sceneform.samples.gltf.library.gallery.HeartActivity
-import com.google.ar.sceneform.samples.gltf.library.gallery.PlatypusActivity
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
-class LibraryActivity : ComponentActivity() {
+class LibraryActivity : FragmentActivity() {
 
-    //sounds
     private lateinit var backSound: MediaPlayer
     private lateinit var flipSound: MediaPlayer
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize MediaPlayer
         backSound = MediaPlayer.create(this, R.raw.back)
         flipSound = MediaPlayer.create(this, R.raw.flip)
 
         setContent {
+
             AugmentEDTheme {
+
                 LibraryScreen(
-                    finish = { finish()},
-                    //sound
+                    finish = { finish() },
                     playBackSound = { playBackSound() },
-                    playFlipSound = { playFlipSound() }
+                    playFlipSound = { playFlipSound() },
+                    onModelSelected = { modelData ->
+                        val libraryFragment = LibraryFragment().apply {
+                            arguments = Bundle().apply {
+                                putString("modelName", modelData.name) // modelData is now correctly defined
+                            }
+                        }
+
+                        supportFragmentManager.beginTransaction()
+                            .replace(android.R.id.content, libraryFragment)
+                            .addToBackStack(null)
+                            .commit()
+                    }
+
                 )
             }
         }
     }
-
     private fun playBackSound() {
         backSound.start()
     }
@@ -91,9 +99,9 @@ class LibraryActivity : ComponentActivity() {
 fun LibraryScreen(
     finish: () -> Unit,
     playBackSound: () -> Unit,
-    playFlipSound: () -> Unit
-    //sound
-    ) {
+    playFlipSound: () -> Unit,
+    onModelSelected: (ModelItemData) -> Unit
+) {
     val context = LocalContext.current
     Scaffold(
         topBar = {
@@ -126,32 +134,25 @@ fun LibraryScreen(
             modifier = Modifier.padding(innerPadding)
         ) {
             items(getModelItems()) { item ->
-                ModelItem(item, playFlipSound)
+                ModelItem(item, playFlipSound, onModelSelected)
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ModelItem(item: ModelItemData, playFlipSound: () -> Unit) {
-    val context = LocalContext.current
+fun ModelItem(
+    item: ModelItemData,
+    playFlipSound: () -> Unit,
+    onModelSelected: (ModelItemData) -> Unit
+) {
     Card(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
             .clickable {
-                val activityClass = modelActivityMap[item.name]
-                if (activityClass != null) {
-                    playFlipSound()
-                    val intent = Intent(context, activityClass).apply {
-                        putExtra("modelPath", item.modelPath)
-                    }
-                    context.startActivity(intent)
-                } else {
-                    // Fallback or error handling if the activity is not found
-                    Toast.makeText(context, "Activity not found for ${item.name}", Toast.LENGTH_SHORT).show()
-                }
+                playFlipSound()
+                onModelSelected(item)
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -175,12 +176,14 @@ fun ModelItem(item: ModelItemData, playFlipSound: () -> Unit) {
         }
     }
 }
+
 data class ModelItemData(
     val name: String,
     val modelPath: String,
     val previewImageResId: Int
 )
 
+/* [Old Code]
 val modelActivityMap = mapOf(
     "Amphibian" to AmphibianActivity::class.java,
     "Bacteria" to BacteriaActivity::class.java,
@@ -188,14 +191,14 @@ val modelActivityMap = mapOf(
     "Platypus" to PlatypusActivity::class.java,
     "Heart" to HeartActivity::class.java
     // Add more mappings as needed
-)
+)*/
 fun getModelItems(): List<ModelItemData> {
     return listOf(
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
         ModelItemData("Amphibian", "models/amphibian.glb", R.drawable.amphibian),
         ModelItemData("Digestive System", "models/digestive.glb", R.drawable.digestive),
         ModelItemData("Platypus", "models/platypus.glb", R.drawable.platypus),
-        ModelItemData("Heart", "models/bacteria.glb", R.drawable.heart),
+        ModelItemData("Heart", "models/heart.glb", R.drawable.heart),
         // Add more items as needed
     )
 }

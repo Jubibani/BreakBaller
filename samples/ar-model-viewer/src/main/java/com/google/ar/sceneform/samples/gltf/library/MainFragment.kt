@@ -48,16 +48,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var arFragment: ArFragment
     private val arSceneView get() = arFragment.arSceneView
     private val scene get() = arSceneView.scene
-/* [Old Code]
-    private val models = mutableMapOf<String, Renderable?>()
-    private val modelViews = mutableMapOf<String, ViewRenderable?>()*/
 
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
     private var lastToastTime = 0L
     private val TOAST_COOLDOWN_MS = 20000 // 9 seconds cooldown
-    /* [Old Code]
-    private val recognizableModels = listOf("Amphibian", "Bacteria", "Digestive", "Platypus", "Heart")*/
+
 
     private lateinit var modelDao: ModelDao
     private val recognizableModelNames = mutableListOf<String>()
@@ -90,21 +86,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     //restart
     private lateinit var restartButton: FloatingActionButton
-/* [Old Code]
-    data class ModelInfo(
-        val modelName: String,
-        val layoutResId: Int,
-        val interactionPrompt: String,
-        val interactionSoundResId: Int  // Add this new property
-    )
 
-    private val modelInfoList = listOf(
-        ModelInfo("Amphibian", R.layout.amphibian_infos, "Tap to learn more about amphibians!", R.raw.froggy),
-        ModelInfo("Bacteria", R.layout.bacteria_infos, "Tap to explore bacterial structures!",R.raw.bacteriasound),
-        ModelInfo("Digestive", R.layout.digestive_infos, "Tap to see the digestive process!",R.raw.digestsound),
-        ModelInfo("Platypus", R.layout.platypus_infos, "Tap to discover platypus facts!",R.raw.platypusound),
-        ModelInfo("Heart", R.layout.heart_info, "Tap to see the heart in action!",R.raw.heartsound)
-    )*/
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -162,9 +144,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
-/*        lifecycleScope.launchWhenCreated {
-            preloadModels()
-        }*/
     }
 
     private fun preloadModels() {
@@ -181,21 +160,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
     }
-/* [Old COde]
-    private suspend fun loadModels() {
-        for (modelName in recognizableModelNames) {
-            models[modelName] = ModelRenderable.builder()
-                .setSource(context, Uri.parse("models/${modelName.lowercase(Locale.ROOT)}.glb"))
-                .setIsFilamentGltf(true)
-                .await()
-        }
-
-        for (modelInfo in modelInfoList) {
-            modelViews[modelInfo.modelName] = ViewRenderable.builder()
-                .setView(context, modelInfo.layoutResId)
-                .await()
-        }
-    }*/
 
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
@@ -250,30 +214,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         }
     }
-/* [Old Code]
-    private fun renderModelOnSurface(modelName: String) {
-        if (models[modelName] == null || modelViews == null) {
-            vibrate()
-            pingSound()
-            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        arFragment.arSceneView.scene.addOnUpdateListener { frameTime ->
-            val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener
-            val planes = frame.getUpdatedTrackables(Plane::class.java)
-
-            for (plane in planes) {
-                if (plane.trackingState == TrackingState.TRACKING && !isModelPlaced) {
-                    val pose = plane.centerPose
-                    val anchor = plane.createAnchor(pose)
-                    placeModel(anchor, modelName)
-                    isModelPlaced = true
-                    break
-                }
-            }
-        }
-    }*/
 
     private fun renderModelOnSurface(modelName: String) {
         val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
@@ -301,49 +241,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-/*
- [Old Code]
-    private fun placeModel(anchor: Anchor, modelName: String) {
-        val model = models[modelName] ?: return
-        val modelInfo = modelInfoList.find { it.modelName == modelName } ?: return
-        val modelView = modelViews[modelName] ?: return
-
-        scene.addChild(AnchorNode(anchor).apply {
-            addChild(TransformableNode(arFragment.transformationSystem).apply {
-                renderable = model
-                renderableInstance.setCulling(false)
-                renderableInstance.animate(true).start()
-                // Add InfoNode
-                addChild(Node().apply {
-                    name = "InfoNode"
-                    localPosition = Vector3(0.0f, 1f, 0.0f)
-                    localScale = Vector3(0.7f, 0.7f, 0.7f)
-                    renderable = modelView
-                    isEnabled = false // Start with info hidden
-                })
-
-                // Add tap listener for model-specific interaction
-                setOnTapListener { _, _ ->
-//                    showToast(modelInfo.interactionPrompt)
-                    // Here you can add more specific interactions based on the model
-                    // Play the interaction sound
-                    playInteractionSound(modelInfo.interactionSoundResId)
-                }
-            })
-        })
-        // Play sound effect when model is rendered
-        playRenderSound()
-
-        // Stop the repeating ping sound
-        stopRepeatingPing()
-
-        // Update the isModelPlaced flag
-        isModelPlaced = true
-
-        // Make the info button visible after placing the model
-        infoButton.visibility = View.VISIBLE
-    }
-*/
 
     private fun placeModel(anchor: Anchor, modelEntity: ModelEntity) {
         val modelName = modelEntity.name
@@ -465,29 +362,3 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         off.release()
     }
 }
-
-//Tap Functionality
-
-//    private fun onTapPlane(hitResult: HitResult, plane: Plane, motionEvent: MotionEvent) {
-//        if (model == null || modelView == null) {
-//            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
-//            return
-//        }
-//
-//        // Create the Anchor.
-//        scene.addChild(AnchorNode(hitResult.createAnchor()).apply {
-//            // Create the transformable model and add it to the anchor.
-//            addChild(TransformableNode(arFragment.transformationSystem).apply {
-//                renderable = model
-//                renderableInstance.setCulling(false)
-//                renderableInstance.animate(true).start()
-//                // Add the View
-//                addChild(Node().apply {
-//                    // Define the relative position
-//                    localPosition = Vector3(0.0f, 1f, 0.0f)
-//                    localScale = Vector3(0.7f, 0.7f, 0.7f)
-//                    renderable = modelView
-//                })
-//            })
-//        })
-//    }
