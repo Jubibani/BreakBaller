@@ -5,11 +5,11 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.data.local.dao.ModelDao
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import com.google.ar.sceneform.samples.gltf.R
 
 @Database(entities = [ModelEntity::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {

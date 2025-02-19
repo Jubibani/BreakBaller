@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.compose.setContent
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -37,12 +38,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
-
-class LibraryActivity : FragmentActivity() {
+class LibraryActivity : AppCompatActivity() {
 
     private lateinit var backSound: MediaPlayer
     private lateinit var flipSound: MediaPlayer
@@ -50,6 +49,8 @@ class LibraryActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
 
         backSound = MediaPlayer.create(this, R.raw.back)
         flipSound = MediaPlayer.create(this, R.raw.flip)
@@ -78,7 +79,10 @@ class LibraryActivity : FragmentActivity() {
                 )
             }
         }
+
     }
+
+
     private fun playBackSound() {
         backSound.start()
     }
@@ -92,6 +96,9 @@ class LibraryActivity : FragmentActivity() {
         backSound.release()
         flipSound.release()
     }
+
+
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

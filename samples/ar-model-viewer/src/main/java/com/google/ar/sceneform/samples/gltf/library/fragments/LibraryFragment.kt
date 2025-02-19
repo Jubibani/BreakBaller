@@ -1,6 +1,10 @@
+
+import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -18,6 +22,7 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.data.local.dao.ModelDao
 import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatabase
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
+import com.google.ar.sceneform.samples.gltf.library.screens.LibraryActivity
 import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
 import kotlinx.coroutines.launch
@@ -31,18 +36,24 @@ class LibraryFragment : Fragment() {
     private var isModelPlaced = false
     private var mediaPlayer: MediaPlayer? = null
     private var currentModel: ModelEntity? = null
-
     private var isInfoVisible = false
     private var infoNode: Node? = null
     private lateinit var onSound: MediaPlayer
     private lateinit var offSound: MediaPlayer
+    private lateinit var backSound: MediaPlayer
     private lateinit var infoButton: FloatingActionButton
+    private lateinit var backButton: FloatingActionButton
+
+    private lateinit var refreshButton: FloatingActionButton
+    private lateinit var refreshSound: MediaPlayer
+
     private var anchorNode: AnchorNode? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+
         val view = inflater.inflate(R.layout.fragment_main, container, false)
 
         modelName = arguments?.getString("modelName")
@@ -51,6 +62,41 @@ class LibraryFragment : Fragment() {
         arFragment = childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment
 
         infoButton = view.findViewById(R.id.infoButton)
+
+        refreshButton = view.findViewById(R.id.refreshButton)
+        refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+
+
+        refreshButton = view.findViewById(R.id.refreshButton)
+        backButton = view.findViewById(R.id.libraryBackButton)
+
+        refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+        backSound = MediaPlayer.create(requireContext(), R.raw.back)
+
+
+        // Initially hide the buttons
+        refreshButton.visibility = View.GONE
+        backButton.visibility = View.GONE
+        infoButton.visibility = View.GONE
+
+        // Delay the appearance of the back button
+        Handler(Looper.getMainLooper()).postDelayed({
+            backButton.visibility = View.VISIBLE
+        }, 2000) // 2000 milliseconds = 2 seconds
+
+        refreshButton.setOnClickListener { refreshFragment() }
+
+        backButton.setOnClickListener {
+            backSound.start()
+
+            //navigate back to LibraryActivity after backSound finished
+            backSound.setOnCompletionListener {
+                navigateBack()
+            }
+
+        }
+
+
         infoButton.setOnClickListener { toggleInfo() }
         infoButton.visibility = View.GONE  // Initially hidden
 
@@ -79,6 +125,9 @@ class LibraryFragment : Fragment() {
                     .thenAccept { modelRenderable ->
                         this@LibraryFragment.model = modelRenderable
                         Log.d("LibraryFragment", "Model loaded: $modelName")
+                        infoNode?.setParent(null)
+                        infoNode = null
+                        createInfoNode()
                     }
                     .exceptionally { throwable ->
                         Log.e("LibraryFragment", "Error loading model: ", throwable)
@@ -93,12 +142,11 @@ class LibraryFragment : Fragment() {
             if (isModelPlaced) return@setOnTapArPlaneListener
 
             val model = this.model ?: return@setOnTapArPlaneListener
-
             val anchor = hitResult.createAnchor()
             placeModel(anchor, model)
-
             isModelPlaced = true
             infoButton.visibility = View.VISIBLE
+
         }
     }
 
@@ -109,63 +157,99 @@ class LibraryFragment : Fragment() {
         val transformableNode = TransformableNode(arFragment.transformationSystem)
         transformableNode.setParent(anchorNode)
         transformableNode.renderable = modelRenderable
-
-        // Ensure the model is placed on the plane
         transformableNode.localPosition = Vector3(0f, 0f, 0f)
-
         transformableNode.select()
 
-        // Play sound when the model is rendered
         mediaPlayer?.start()
 
-        transformableNode.setOnTapListener { _, _ ->
-            mediaPlayer?.start()
-        }
+        transformableNode.setOnTapListener { _, _ -> mediaPlayer?.start() }
 
-        // Create info node after placing the model
         createInfoNode()
+        refreshButton.visibility = View.VISIBLE
     }
 
     private fun toggleInfo() {
+        if (infoNode == null) {
+            Log.e("LibraryFragment", "Info node is null, cannot toggle info")
+            return
+        }
+
         isInfoVisible = !isInfoVisible
+        infoNode?.isEnabled = isInfoVisible
+
         if (isInfoVisible) {
-            showInfo()
             onSound.start()
+            Log.d("LibraryFragment", "Info shown")
         } else {
-            hideInfo()
             offSound.start()
+            Log.d("LibraryFragment", "Info hidden")
         }
     }
 
-    private fun showInfo() {
-        infoNode?.isEnabled = true
-    }
-
-    private fun hideInfo() {
-        infoNode?.isEnabled = false
-    }
-
     private fun createInfoNode() {
+        if (anchorNode == null) {
+            Log.e("LibraryFragment", "AnchorNode is null, cannot create info node")
+            return
+        }
+
         currentModel?.let { model ->
-            Log.d("LibraryFragment", "Creating info node for ${model.name} with layout ${model.layoutResId}")
+            Log.d("LibraryFragment", "Creating info node for ${model.name}")
+
             ViewRenderable.builder()
                 .setView(context, model.layoutResId)
                 .build()
                 .thenAccept { viewRenderable: ViewRenderable ->
+                    infoNode?.setParent(null)
                     infoNode = Node().apply {
                         setParent(anchorNode)
-                        // Position the info above the model
                         localPosition = Vector3(0f, 1f, 0f)
                         localScale = Vector3(0.5f, 0.5f, 0.5f)
                         renderable = viewRenderable
-                        isEnabled = false
+                        isEnabled = true
                     }
+                    Log.d("LibraryFragment", "Info node created successfully")
                 }
-                .exceptionally { throwable: Throwable ->
+                .exceptionally { throwable ->
                     Log.e("LibraryFragment", "Error creating info view: ", throwable)
                     null
                 }
-        }
+        } ?: Log.e("LibraryFragment", "currentModel is null, cannot create info node")
+    }
+
+    private fun navigateBack() {
+
+        val intent = Intent(requireActivity(), LibraryActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        startActivity(intent)
+        requireActivity().onBackPressedDispatcher.onBackPressed()
+    }
+
+    private fun refreshFragment() {
+        refreshSound.start()
+
+        // Remove the existing model
+        anchorNode?.setParent(null)
+        anchorNode = null
+
+        // Reset the info node
+        infoNode?.setParent(null)
+        infoNode = null
+
+        // Reset the model placement flag
+        isModelPlaced = false
+
+        // Hide the info button and info
+        infoButton.visibility = View.GONE
+        isInfoVisible = false
+
+        // Hide the refresh button
+        refreshButton.visibility = View.GONE
+
+        // Reload the model
+        modelName?.let { loadModel(it) }
+
+        // Re-setup the tap to render functionality
+        setupTapToRender()
     }
 
     override fun onDestroy() {
@@ -173,5 +257,6 @@ class LibraryFragment : Fragment() {
         mediaPlayer?.release()
         onSound.release()
         offSound.release()
+        backSound.release()
     }
 }
