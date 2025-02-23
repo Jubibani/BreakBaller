@@ -196,7 +196,7 @@ fun getModelItems(): List<ModelItemData> {
     return listOf(
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
         ModelItemData("Amphibian", "models/amphibian.glb", R.drawable.amphibian),
-        ModelItemData("Digestive System", "models/digestive.glb", R.drawable.digestive),
+        ModelItemData("Digestive", "models/digestive.glb", R.drawable.digestive),
         ModelItemData("Platypus", "models/platypus.glb", R.drawable.platypus),
         ModelItemData("Heart", "models/heart.glb", R.drawable.heart),
         // Add more items as needed

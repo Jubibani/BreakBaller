@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class Activity : AppCompatActivity(R.layout.activity) {
-    private lateinit var mediaPlayer: MediaPlayer
+    private lateinit var backButton: MediaPlayer
     private lateinit var refreshSound: MediaPlayer
     private lateinit var switchSound: MediaPlayer
 
@@ -36,7 +36,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        mediaPlayer = MediaPlayer.create(this, R.raw.back)
+        backButton = MediaPlayer.create(this, R.raw.back)
         refreshSound = MediaPlayer.create(this, R.raw.refresh)
         switchSound = MediaPlayer.create(this, R.raw.on)
         switchButton = findViewById(R.id.switchButton)
@@ -60,7 +60,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
         }
 
         findViewById<FloatingActionButton>(R.id.backButton).setOnClickListener {
-            mediaPlayer.start()
+            backButton.start()
             val intent = Intent(this, MainActivity::class.java)
             intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
             startActivity(intent)
@@ -124,7 +124,7 @@ class Activity : AppCompatActivity(R.layout.activity) {
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer.release()
+        backButton.release()
         refreshSound.release()
         switchSound.release()
         updateJob?.cancel()

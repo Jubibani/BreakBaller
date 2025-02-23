@@ -62,7 +62,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val modelViews = mutableMapOf<String, ViewRenderable?>()
     private val modelInfoMap = mutableMapOf<String, ModelEntity>()  // Store fetched models
 
-    // 🔥 Instead of lateinit, initialize LiveData properly
+    // Instead of lateinit, initialize LiveData properly
     private val modelLiveData: LiveData<List<ModelEntity>> by lazy {
         AppDatabase.getDatabase(requireContext(), lifecycleScope).modelDao().getAllModels()
     }
