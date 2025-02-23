@@ -5,7 +5,6 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
@@ -38,10 +37,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
-class LibraryActivity : AppCompatActivity() {
+
+class LibraryActivity : FragmentActivity() {
 
     private lateinit var backSound: MediaPlayer
     private lateinit var flipSound: MediaPlayer
@@ -49,8 +50,6 @@ class LibraryActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-
 
         backSound = MediaPlayer.create(this, R.raw.back)
         flipSound = MediaPlayer.create(this, R.raw.flip)
@@ -79,10 +78,7 @@ class LibraryActivity : AppCompatActivity() {
                 )
             }
         }
-
     }
-
-
     private fun playBackSound() {
         backSound.start()
     }
@@ -96,9 +92,6 @@ class LibraryActivity : AppCompatActivity() {
         backSound.release()
         flipSound.release()
     }
-
-
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -203,7 +196,7 @@ fun getModelItems(): List<ModelItemData> {
     return listOf(
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
         ModelItemData("Amphibian", "models/amphibian.glb", R.drawable.amphibian),
-        ModelItemData("Digestive System", "models/digestive.glb", R.drawable.digestive),
+        ModelItemData("Digestive", "models/digestive.glb", R.drawable.digestive),
         ModelItemData("Platypus", "models/platypus.glb", R.drawable.platypus),
         ModelItemData("Heart", "models/heart.glb", R.drawable.heart),
         // Add more items as needed

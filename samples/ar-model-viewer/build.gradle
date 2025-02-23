@@ -121,6 +121,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.5.1"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:2.5.1"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4"
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.2"
 
     // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
     // See KSP Quickstart to add KSP to your build

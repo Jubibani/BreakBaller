@@ -77,7 +77,7 @@ class LibraryFragment : Fragment() {
         // Initially hide the buttons
         refreshButton.visibility = View.GONE
         backButton.visibility = View.GONE
-        infoButton.visibility = View.GONE
+
 
         // Delay the appearance of the back button
         Handler(Looper.getMainLooper()).postDelayed({
@@ -112,6 +112,8 @@ class LibraryFragment : Fragment() {
     private fun loadModel(modelName: String) {
         lifecycleScope.launch {
             currentModel = modelDao.getModelByName(modelName)
+            Log.d("LibraryFragment", "Retrieved Model from DB: $currentModel")
+
             currentModel?.let { model ->
                 val modelPath = model.modelPath
                 val soundResId = model.interactionSoundResId
@@ -157,7 +159,7 @@ class LibraryFragment : Fragment() {
         val transformableNode = TransformableNode(arFragment.transformationSystem)
         transformableNode.setParent(anchorNode)
         transformableNode.renderable = modelRenderable
-        transformableNode.localPosition = Vector3(0f, 0f, 0f)
+        transformableNode.localPosition = Vector3(0.0f, 0.0f, 0.0f)
         transformableNode.select()
 
         mediaPlayer?.start()
@@ -189,6 +191,8 @@ class LibraryFragment : Fragment() {
     private fun createInfoNode() {
         if (anchorNode == null) {
             Log.e("LibraryFragment", "AnchorNode is null, cannot create info node")
+            Log.d("LibraryFragment", "Retrieved Info from DB: $anchorNode")
+
             return
         }
 
@@ -202,12 +206,13 @@ class LibraryFragment : Fragment() {
                     infoNode?.setParent(null)
                     infoNode = Node().apply {
                         setParent(anchorNode)
-                        localPosition = Vector3(0f, 1f, 0f)
-                        localScale = Vector3(0.5f, 0.5f, 0.5f)
+                        localPosition = Vector3(0.0f, 1f, 0.0f)
+                        localScale = Vector3(0.7f, 0.7f, 0.7f)
                         renderable = viewRenderable
-                        isEnabled = true
+                        isEnabled = false
                     }
                     Log.d("LibraryFragment", "Info node created successfully")
+                    Log.d("LibraryFragment", "Retrieved Info from DB: $anchorNode")
                 }
                 .exceptionally { throwable ->
                     Log.e("LibraryFragment", "Error creating info view: ", throwable)

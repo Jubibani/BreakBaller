@@ -9,12 +9,14 @@ import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEnt
 
 
 
+
+
 @Dao
 interface ModelDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertModel(model: ModelEntity)
 
-    @Query("SELECT * FROM models WHERE name = :name")
+    @Query("SELECT * FROM models WHERE LOWER(name) = LOWER(:name) LIMIT 1")
     suspend fun getModelByName(name: String): ModelEntity?
 
     @Query("SELECT * FROM models")
