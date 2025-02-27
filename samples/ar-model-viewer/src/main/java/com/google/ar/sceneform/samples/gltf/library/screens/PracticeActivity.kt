@@ -1,5 +1,6 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
+import android.app.Activity
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
@@ -50,7 +51,6 @@ import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
-
 
 
 class PracticeActivity : FragmentActivity() {
@@ -232,22 +232,26 @@ fun LearnAndEarnContent(playSwitchSound: () -> Unit) {
 @Composable
 fun RewardsContent(playSwitchSound: () -> Unit) {
     val context = LocalContext.current
+
     val rewardItems = remember {
         listOf(
             PracticeItemData("Achievements", "View your accomplishments", R.drawable.question_icon) {
                 playSwitchSound()
                 Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
-                // Add intent to start Achievements activity
             },
             PracticeItemData("Leaderboard", "See how you rank", R.drawable.question_icon) {
                 playSwitchSound()
                 Toast.makeText(context, "Opening Leaderboard", Toast.LENGTH_SHORT).show()
-                // Add intent to start Leaderboard activity
             },
             PracticeItemData("Redeem Points", "Use your earned points", R.drawable.question_icon) {
                 playSwitchSound()
-                Toast.makeText(context, "Redeeming Points", Toast.LENGTH_SHORT).show()
-                // Add intent to start Redeem Points activity
+                Toast.makeText(context, "Launching Unity Game", Toast.LENGTH_SHORT).show()
+
+                // ✅ Ensure the context is an Activity before launching Unity
+                (context as? Activity)?.let { activity ->
+                    val intent = Intent(activity, com.unity3d.player.UnityPlayerGameActivity::class.java)
+                    activity.startActivity(intent)
+                } ?: Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
             }
         )
     }
@@ -258,7 +262,6 @@ fun RewardsContent(playSwitchSound: () -> Unit) {
         }
     }
 }
-
 @Composable
 fun PracticeItemCard(item: PracticeItemData) {
     Card(

@@ -52,6 +52,12 @@ android {
         pickFirst 'lib/x86/libc++_shared.so'
         pickFirst 'lib/x86_64/libc++_shared.so'
     }
+    repositories {
+
+        flatDir {
+            dirs 'src/main/java/com/google/ar/sceneform/samples/gltf/libs'
+        }
+    }
 }
 
 dependencies {
@@ -134,4 +140,18 @@ dependencies {
     androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
+
+    //for running unity games
+    implementation group: 'androidx.games', name: 'games-activity', version: '4.0.0'
+    implementation 'androidx.games:games-activity:4.0.0'
+    runtimeOnly 'androidx.games:games-activity:4.0.0'
+
+
+
+
+    //modules
+    implementation(name: 'unityLibrary-release', ext: 'aar')
+
+
+
 }

@@ -1,2 +1,5 @@
 -keep class com.google.ar.core.** { *; }
 -keep class com.google.android.filament.** { *; }
+-keep class com.unity3d.player.** { *; }
+-keep class com.google.androidgamesdk.** { *; }
+-keep class androidx.games.** { *; }
