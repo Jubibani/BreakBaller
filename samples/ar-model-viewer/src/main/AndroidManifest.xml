@@ -154,7 +154,5 @@
             tools:replace="android:configChanges, android:theme" />
 
 
-
-
     </application>
 </manifest>
