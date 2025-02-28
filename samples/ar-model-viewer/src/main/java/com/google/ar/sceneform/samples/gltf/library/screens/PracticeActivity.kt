@@ -204,8 +204,8 @@ fun PracticeScreen(
             }
 
             when (selectedTabIndex) {
-                0 -> LearnAndEarnContent(playSwitchSound, points, onRedeem) // ✅ Pass points & onRedeem
-                1 -> RewardsContent(points, onRedeem, playSwitchSound) // ✅ Pass points & onRedeem
+                0 -> LearnAndEarnContent(playSwitchSound, points, onRedeem) //  Pass points & onRedeem
+                1 -> RewardsContent(points, onRedeem, playSwitchSound) //  Pass points & onRedeem
             }
         }
     }
@@ -320,19 +320,26 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
             },
             PracticeItemData("Additional Content 3", "Redeem your points", R.drawable.question_icon) {
                 playSwitchSound()
+
                 if (userPoints >= 50) {
                     spendPoints(50) // Deduct 50 points to unlock content
                     onRedeem(50)
                     Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
 
-                    (context as? Activity)?.let { activity ->
+                    val activity = context as? Activity
+                    if (activity != null) {
                         val intent = Intent(activity, com.unity3d.player.UnityPlayerGameActivity::class.java)
-                        activity.startActivity(intent)
-                    } ?: Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
+                        intent.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT // Ensures result returns to this Activity
+                        activity.startActivity(intent) // Launch Unity
+                    } else {
+                        Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
+                    }
                 } else {
                     Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
                 }
             }
+
+
         )
     }
 
