@@ -7,12 +7,16 @@ import android.media.MediaPlayer
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,11 +24,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -164,9 +170,13 @@ fun PracticeScreen(
                             contentDescription = "Back to Main"
                         )
                     }
+                },
+                actions = {
+                    PointsDisplay(points) // Add PointsDisplay here!
                 }
             )
         }
+
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -249,7 +259,6 @@ fun LearnAndEarnContent(
             .padding(16.dp)
     )
     {
-        PointsDisplay(points)
         LazyColumn {
             items(learnItems) { item ->
                 PracticeItemCard(item)
@@ -260,20 +269,37 @@ fun LearnAndEarnContent(
 
 @Composable
 fun PointsDisplay(points: Int) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 8.dp) //outside
+            .clip(RoundedCornerShape(10.dp)) // Rounded border
+            .background(Color(0xFF2B2B2B)) // Darker background
+            .padding(horizontal = 3.dp, vertical = 2.dp) // Padding inside the box
+
     ) {
-        Text(
-            text = "Points: $points",
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (points >= 50) Color(0xFFFFD700) else Color.Red // Highlight when enough points
-        )
-        Icon(imageVector = Icons.Default.Star, contentDescription = "Points Icon", tint = Color(0xFFFFD700))
+        Row(
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.brain), // Your brain icon
+                contentDescription = "Brain Currency",
+                modifier = Modifier.size(24.dp) // Adjust icon size
+            )
+
+            Spacer(modifier = Modifier.width(8.dp)) // Space between icon and text
+
+            Text(
+                text = points.toString(), // Show points number
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (points >= 50) Color(0xFFFFD700) else Color.White // Gold for enough points
+            )
+        }
     }
 }
+
+
+
 
 @Composable
 fun RedeemButton(points: Int, onRedeem: (Int) -> Unit) {
@@ -295,6 +321,7 @@ fun RedeemButton(points: Int, onRedeem: (Int) -> Unit) {
 }
 
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> Unit) {
     val context = LocalContext.current
@@ -317,38 +344,151 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
             PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
                 playSwitchSound()
                 Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },            PracticeItemData("Additional Content 1", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },            PracticeItemData("Additional Content 1", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
+            },
+            PracticeItemData("Additional Content 2", "Redeem your points", R.drawable.question_icon) {
+                playSwitchSound()
+                Toast.makeText(context, "Viewing Achievements", Toast.LENGTH_SHORT).show()
             },
             PracticeItemData("Additional Content 3", "Redeem your points", R.drawable.question_icon) {
                 playSwitchSound()
-
                 if (userPoints >= 50) {
-                    spendPoints(50) // Deduct 50 points to unlock content
+                    spendPoints(50)
                     onRedeem(50)
                     Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
-
                     val activity = context as? Activity
-                    if (activity != null) {
-                        val intent = Intent(activity, com.unity3d.player.UnityPlayerGameActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT // Ensures result returns to this Activity
-                        activity.startActivity(intent) // Launch Unity
-                    } else {
-                        Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
-                    }
+                    activity?.let {
+                        val intent = Intent(it, com.unity3d.player.UnityPlayerGameActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT
+                        it.startActivity(intent)
+                    } ?: Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
                 } else {
                     Toast.makeText(context, "Not enough points!", Toast.LENGTH_SHORT).show()
                 }
             }
-
-
         )
     }
 
-    LazyColumn {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3), // 3 columns
+        modifier = Modifier.fillMaxSize().padding(8.dp), // Full size + padding
+        verticalArrangement = Arrangement.spacedBy(12.dp), // Space between rows
+        horizontalArrangement = Arrangement.spacedBy(12.dp) // Space between columns
+    ) {
         items(rewardItems) { item ->
-            PracticeItemCard(item)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f) // Ensures each item is square
+            ) {
+                PracticeItemCard(item)
+            }
         }
     }
+
 }
+
 
 @Composable
 fun PracticeItemCard(item: PracticeItemData) {
