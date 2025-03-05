@@ -1,10 +1,10 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -48,11 +48,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,22 +65,37 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
+import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatabase
+import com.google.ar.sceneform.samples.gltf.library.data.repository.PointsRepository
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 
 class PracticeActivity : FragmentActivity() {
+    //Initialize points from db
+    private lateinit var repository: PointsRepository
+
     private var backSound: MediaPlayer? = null
     private var switchSound: MediaPlayer? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initializeSounds()
+
+
+        val database = AppDatabase.getDatabase(applicationContext, CoroutineScope(Dispatchers.IO))
+        repository = PointsRepository(database.brainPointsDao())
+
         setContent {
             AugmentEDTheme {
                 PracticeScreen(
                     finish = { finish() },
+                    repository = repository,
                     playBackSound = { playBackSound() },
                     playSwitchSound = { playSwitchSound() }
+
                 )
             }
         }
@@ -135,23 +150,43 @@ class PracticeActivity : FragmentActivity() {
 @Composable
 fun PracticeScreen(
     finish: () -> Unit,
+    repository: PointsRepository,
     playBackSound: () -> Unit,
     playSwitchSound: () -> Unit
 ) {
-    val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences("rewards_prefs", Context.MODE_PRIVATE)
+    val scope = rememberCoroutineScope() // ✅ Define coroutine scope
+    val pointsFlow = repository.pointsFlow.collectAsState(initial = null)
+    val points = pointsFlow.value?.points ?: 0 // ✅ Get current points from Flow
 
-    val pointsKey = "User_points"
-    var points by rememberSaveable { mutableIntStateOf(sharedPreferences.getInt(pointsKey, 0)) }
 
-    val onRedeem: (Int) -> Unit = { cost ->
-        if (points >= cost) {
-            points -= cost
-            sharedPreferences.edit().putInt(pointsKey, points).apply()
+    PointsDisplay(points)
+
+
+    val addPoints: (Int) -> Unit = { earnedPoints ->
+        scope.launch {
+            val currentPoints = repository.getPoints() // Get current points
+            val newPoints = currentPoints + earnedPoints
+            repository.updatePoints(newPoints) // Update points
+
+            Log.d("PointsDebug", "Updated Points: $newPoints") // 🔍 Debugging log
         }
     }
 
-    val tabTitles = remember { listOf("Learn and Earn", "Rewards") }
+
+    Column {
+        PointsDisplay(points = points) // ✅ Show updated points
+        Button(onClick = { addPoints(10) }) { // Example button to add points
+            Text("Earn 10 Points")
+        }
+    }
+
+    val onRedeem: (Int) -> Unit = { cost ->
+        if (points >= cost) {
+            CoroutineScope(Dispatchers.IO).launch {
+                repository.updatePoints(points - cost) // ✅ Deduct points
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -164,7 +199,7 @@ fun PracticeScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         playBackSound()
-                        finish() // Instead of restarting MainActivity
+                        finish()
                     }) {
                         Icon(
                             imageVector = Icons.Filled.ArrowBack,
@@ -173,11 +208,10 @@ fun PracticeScreen(
                     }
                 },
                 actions = {
-                    PointsDisplay(points) // Add PointsDisplay here!
+                    PointsDisplay(points) // ✅ Display updated points
                 }
             )
         }
-
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -197,7 +231,7 @@ fun PracticeScreen(
                     )
                 }
             ) {
-                tabTitles.forEachIndexed { index, title ->
+                listOf("Learn and Earn", "Rewards").forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
                         onClick = {
@@ -215,12 +249,13 @@ fun PracticeScreen(
             }
 
             when (selectedTabIndex) {
-                0 -> LearnAndEarnContent(playSwitchSound, points, onRedeem) //  Pass points & onRedeem
-                1 -> RewardsContent(points, onRedeem, playSwitchSound) //  Pass points & onRedeem
+                0 -> LearnAndEarnContent(playSwitchSound, addPoints, onRedeem) // ✅ Pass addPoints
+                1 -> RewardsContent(points, onRedeem, playSwitchSound)
             }
         }
     }
 }
+
 
 data class PracticeItemData(
     val name: String,
@@ -239,21 +274,18 @@ data class RewardItemData(
 @Composable
 fun LearnAndEarnContent(
     playSwitchSound: () -> Unit,
-    points: Int,
+    addPoints: (Int) -> Unit,
     onRedeem: (Int) -> Unit
 ) {
     val context = LocalContext.current
+
 
     val learnItems = remember {
         listOf(
             PracticeItemData("Quiz Challenge", "Test your knowledge", R.drawable.quiz_icon) {
                 playSwitchSound()
                 Toast.makeText(context, "Starting Quiz Challenge", Toast.LENGTH_SHORT).show()
-                onRedeem(-10) //  Use onRedeem(-10) to add points
-
-                /*  [Needs More Investigation]
-                Huh? what happened? add points but 10 below zero?
-                 */
+                addPoints(10)
             },
             PracticeItemData("Flashcards", "Review key concepts", R.drawable.flashcard_icon) {
                 playSwitchSound()
@@ -319,24 +351,13 @@ fun PointsDisplay(points: Int) {
 @Composable
 fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> Unit) {
     val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences("rewards_prefs", Context.MODE_PRIVATE)
-
-    val pointsKey = "User_points"
-    var userPoints by rememberSaveable { mutableIntStateOf(sharedPreferences.getInt(pointsKey, 0)) }
-
-    var showDialog by remember {mutableStateOf(false)}
-    var selectedItem by remember {mutableStateOf<RewardItemData?>(null)}
-
-    val spendPoints: (Int) -> Unit = { amount ->
-        userPoints -= amount
-        sharedPreferences.edit().putInt(pointsKey, userPoints).apply()
-    }
+    var showDialog by remember { mutableStateOf(false) }
+    var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
 
     val rewardItems = remember {
         listOf(
             RewardItemData("1", "Redeem your points", R.drawable.question_icon, 10) {
                 playSwitchSound()
-
                 selectedItem = it
                 showDialog = true
             },
@@ -345,79 +366,23 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
                 selectedItem = it
                 showDialog = true
             },
-            RewardItemData("3", "Redeem your points", R.drawable.question_icon, 10) {
-                playSwitchSound()
-
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("4", "Redeem your points", R.drawable.question_icon, 25) {
+            RewardItemData("11", "Unlock Mini-Game", R.drawable.question_icon, 50) {
                 playSwitchSound()
                 selectedItem = it
                 showDialog = true
-            },
-            RewardItemData("5", "Redeem your points", R.drawable.question_icon, 10) {
-                playSwitchSound()
-
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("6", "Redeem your points", R.drawable.question_icon, 25) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("7", "Redeem your points", R.drawable.question_icon, 10) {
-                playSwitchSound()
-
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("8", "Redeem your points", R.drawable.question_icon, 25) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("9", "Redeem your points", R.drawable.question_icon, 10) {
-                playSwitchSound()
-
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("10", "Redeem your points", R.drawable.question_icon, 25) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("11", "Redeem your points", R.drawable.question_icon, 50) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-                if (userPoints >= 50) {
-                    spendPoints(50)
-                    onRedeem(50)
-                    Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
-                    val activity = context as? Activity
-                    activity?.let {
-                        val intent = Intent(it, com.unity3d.player.UnityPlayerGameActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT
-                        it.startActivity(intent)
-                    } ?: Toast.makeText(context, "Error: Unable to launch Unity", Toast.LENGTH_SHORT).show()
-                }
             }
-
         )
     }
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(3), // 3 columns
-        modifier = Modifier.fillMaxSize().padding(8.dp), // Full size + padding
-        verticalArrangement = Arrangement.spacedBy(12.dp), // Space between rows
-        horizontalArrangement = Arrangement.spacedBy(12.dp) // Space between columns
+        columns = GridCells.Fixed(3),
+        modifier = Modifier.fillMaxSize().padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(rewardItems) { item ->
             RewardItemCard(item) { selected ->
-                selectedItem = selected  //  Store the selected item
+                selectedItem = selected
                 showDialog = true
             }
         }
@@ -427,14 +392,10 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
         ConfirmPurchaseDialog(
             itemName = selectedItem!!.name,
             requiredPoints = selectedItem!!.cost,
-            userPoints = userPoints,
+            userPoints = points, // ✅ Use Room-based points instead of SharedPreferences
             onConfirm = {
-                //  Only deduct points AFTER user confirms
-                if (userPoints >= selectedItem!!.cost) {
-                    spendPoints(selectedItem!!.cost)
-                    onRedeem(selectedItem!!.cost)
-
-                    //  Launch additional content if applicable
+                if (points >= selectedItem!!.cost) {
+                    onRedeem(selectedItem!!.cost) // ✅ Deduct points via Room
                     if (selectedItem!!.name == "11") {
                         val activity = context as? Activity
                         activity?.let {
@@ -449,11 +410,8 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
             onDismiss = { showDialog = false }
         )
     }
-
-
-
-
 }
+
 
 
 @Composable

@@ -5,10 +5,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.google.ar.sceneform.samples.gltf.library.data.local.entities.BrainPointsEntity
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
-
-
-
+import kotlinx.coroutines.flow.Flow
 
 
 @Dao
@@ -25,5 +24,18 @@ interface ModelDao {
     @Query("SELECT name FROM models")
     fun getAllModelNames(): LiveData<List<String>>
 
+}
+@Dao
+interface PointsDao {
+    @Query("SELECT * FROM brain_points WHERE id = 1")
+    fun getPointsFlow(): Flow<BrainPointsEntity?>  // Use Flow for Live Data
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertPoints(pointsEntity: BrainPointsEntity)
+
+    @Query("SELECT points FROM brain_points WHERE id = 1")
+    suspend fun getPoints(): Int
+
+    @Query("UPDATE brain_points SET points = :newPoints WHERE id = 1")
+    suspend fun updatePoints(newPoints: Int)
 }

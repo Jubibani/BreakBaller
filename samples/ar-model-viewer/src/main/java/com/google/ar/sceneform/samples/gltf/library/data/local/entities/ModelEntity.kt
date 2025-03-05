@@ -11,3 +11,9 @@ data class ModelEntity(
     val interactionPrompt: String,
     val interactionSoundResId: Int
 )
+
+@Entity(tableName = "brain_points")
+data class BrainPointsEntity(
+    @PrimaryKey val id: Int = 1, // Single row (singleton table)
+    val points: Int
+)
