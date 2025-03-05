@@ -1,12 +1,11 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
-import android.app.Activity
-import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -67,6 +66,7 @@ import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatabase
 import com.google.ar.sceneform.samples.gltf.library.data.repository.PointsRepository
+import com.google.ar.sceneform.samples.gltf.library.data.viewmodel.RewardsViewModel
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -77,6 +77,7 @@ class PracticeActivity : FragmentActivity() {
     //Initialize points from db
     private lateinit var repository: PointsRepository
 
+    private var purchaseSound: MediaPlayer? = null
     private var backSound: MediaPlayer? = null
     private var switchSound: MediaPlayer? = null
 
@@ -84,6 +85,7 @@ class PracticeActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         initializeSounds()
 
+        val rewardsViewModel: RewardsViewModel by viewModels()
 
         val database = AppDatabase.getDatabase(applicationContext, CoroutineScope(Dispatchers.IO))
         repository = PointsRepository(database.brainPointsDao())
@@ -93,9 +95,10 @@ class PracticeActivity : FragmentActivity() {
                 PracticeScreen(
                     finish = { finish() },
                     repository = repository,
+                    playPurchaseSound = {playPurchaseSound() },
                     playBackSound = { playBackSound() },
-                    playSwitchSound = { playSwitchSound() }
-
+                    playSwitchSound = { playSwitchSound() },
+                    rewardsViewModel = rewardsViewModel
                 )
             }
         }
@@ -104,10 +107,19 @@ class PracticeActivity : FragmentActivity() {
 
     private fun initializeSounds() {
         try {
+            purchaseSound = MediaPlayer.create(this, R.raw.purchase)
             backSound = MediaPlayer.create(this, R.raw.back)
             switchSound = MediaPlayer.create(this, R.raw.swipe)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun playPurchaseSound() {
+        purchaseSound?.let { sound ->
+            if (!sound.isPlaying) {
+                sound.start()
+            }
         }
     }
 
@@ -133,6 +145,12 @@ class PracticeActivity : FragmentActivity() {
     }
 
     private fun releaseMediaPlayers() {
+        purchaseSound?.apply {
+            if (isPlaying) stop()
+            release()
+        }
+
+
         backSound?.apply {
             if (isPlaying) stop()
             release()
@@ -151,12 +169,14 @@ class PracticeActivity : FragmentActivity() {
 fun PracticeScreen(
     finish: () -> Unit,
     repository: PointsRepository,
+    playPurchaseSound: () -> Unit,
     playBackSound: () -> Unit,
-    playSwitchSound: () -> Unit
+    playSwitchSound: () -> Unit,
+    rewardsViewModel: RewardsViewModel
 ) {
-    val scope = rememberCoroutineScope() // ✅ Define coroutine scope
+    val scope = rememberCoroutineScope()
     val pointsFlow = repository.pointsFlow.collectAsState(initial = null)
-    val points = pointsFlow.value?.points ?: 0 // ✅ Get current points from Flow
+    val points = pointsFlow.value?.points ?: 0 //  Get current points from Flow
 
 
     PointsDisplay(points)
@@ -174,7 +194,7 @@ fun PracticeScreen(
 
 
     Column {
-        PointsDisplay(points = points) // ✅ Show updated points
+        PointsDisplay(points = points) //  Show updated points
         Button(onClick = { addPoints(10) }) { // Example button to add points
             Text("Earn 10 Points")
         }
@@ -183,7 +203,7 @@ fun PracticeScreen(
     val onRedeem: (Int) -> Unit = { cost ->
         if (points >= cost) {
             CoroutineScope(Dispatchers.IO).launch {
-                repository.updatePoints(points - cost) // ✅ Deduct points
+                repository.updatePoints(points - cost) //  Deduct points
             }
         }
     }
@@ -250,7 +270,7 @@ fun PracticeScreen(
 
             when (selectedTabIndex) {
                 0 -> LearnAndEarnContent(playSwitchSound, addPoints, onRedeem) // ✅ Pass addPoints
-                1 -> RewardsContent(points, onRedeem, playSwitchSound)
+                1 -> RewardsContent(points, onRedeem, playSwitchSound, playPurchaseSound, rewardsViewModel)
             }
         }
     }
@@ -344,13 +364,18 @@ fun PointsDisplay(points: Int) {
 }
 
 
-
-
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> Unit) {
+fun RewardsContent(
+    points: Int,
+    onRedeem: (Int) -> Unit,
+    playSwitchSound: () -> Unit,
+    playPurchaseSound: () -> Unit,
+    viewModel: RewardsViewModel
+) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
     var showDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
 
@@ -392,20 +417,14 @@ fun RewardsContent(points: Int, onRedeem: (Int) -> Unit, playSwitchSound: () -> 
         ConfirmPurchaseDialog(
             itemName = selectedItem!!.name,
             requiredPoints = selectedItem!!.cost,
-            userPoints = points, // ✅ Use Room-based points instead of SharedPreferences
+            userPoints = points, // Use Room-based points instead of SharedPreferences
             onConfirm = {
-                if (points >= selectedItem!!.cost) {
-                    onRedeem(selectedItem!!.cost) // ✅ Deduct points via Room
-                    if (selectedItem!!.name == "11") {
-                        val activity = context as? Activity
-                        activity?.let {
-                            val intent = Intent(it, com.unity3d.player.UnityPlayerGameActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_FORWARD_RESULT
-                            it.startActivity(intent)
-                        }
+                playPurchaseSound()
+                coroutineScope.launch {
+                    viewModel.unlockMiniGameAndDeductPoints(selectedItem!!) {
+                        showDialog = false
                     }
                 }
-                showDialog = false
             },
             onDismiss = { showDialog = false }
         )

@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.BrainPointsEntity
+import com.google.ar.sceneform.samples.gltf.library.data.local.entities.MiniGameEntity
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -38,4 +39,19 @@ interface PointsDao {
 
     @Query("UPDATE brain_points SET points = :newPoints WHERE id = 1")
     suspend fun updatePoints(newPoints: Int)
+}
+
+@Dao
+interface MiniGameDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGame(game: MiniGameEntity)
+
+    @Query("SELECT * FROM mini_games WHERE gameId = :gameId")
+    suspend fun getMiniGameById(gameId: String): MiniGameEntity?
+
+    @Query("UPDATE mini_games SET isUnlocked = :isUnlocked WHERE gameId = :gameId")
+    suspend fun updateUnlockStatus(gameId: String, isUnlocked: Boolean)
+
+    @Query("SELECT * FROM mini_games")
+    fun getAllMiniGames(): LiveData<List<MiniGameEntity>>
 }

@@ -17,3 +17,10 @@ data class BrainPointsEntity(
     @PrimaryKey val id: Int = 1, // Single row (singleton table)
     val points: Int
 )
+
+@Entity(tableName = "mini_games")
+data class MiniGameEntity(
+    @PrimaryKey val gameId: String,  // Unique ID for each mini-game
+    val name: String,                // Name of the mini-game
+    val isUnlocked: Boolean          // Unlock status (true if purchased)
+)
