@@ -1,7 +1,10 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
+import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
@@ -419,16 +422,27 @@ fun RewardsContent(
             requiredPoints = selectedItem!!.cost,
             userPoints = points, // Use Room-based points instead of SharedPreferences
             onConfirm = {
-                playPurchaseSound()
                 coroutineScope.launch {
+
+                    showDialog = false
                     viewModel.unlockMiniGameAndDeductPoints(selectedItem!!) {
+                        Handler(Looper.getMainLooper()).post {
+                            val intent = Intent(context, com.unity3d.player.UnityPlayerGameActivity::class.java)
+                            context.startActivity(intent)
+
+                            Toast.makeText(context, "Launching with Handler", Toast.LENGTH_SHORT).show()
+                        }
+
                         showDialog = false
                     }
                 }
+
             },
             onDismiss = { showDialog = false }
         )
     }
+
+
 }
 
 

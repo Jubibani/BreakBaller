@@ -31,10 +31,14 @@
         android:required="false" />
 
     <application
+        android:debuggable="true"
         android:name=".library.App"
         android:icon="@drawable/splashscreen"
         android:label="Augment-ED"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+
+
+        tools:ignore="HardcodedDebugMode">
 
         <!-- Indicates that this app requires Google Play Services for AR ("AR Required") and causes
         the Google Play Store to download and intall Google Play Services for AR along with the app.
@@ -119,39 +123,15 @@
         </activity>
 
 
-        <!--Models-->
-        <activity
-            android:name=".library.gallery.AmphibianActivity"
-            android:exported="false"
-            android:label="Bacteria Activity">
-        </activity>
-        <activity
-            android:name=".library.gallery.BacteriaActivity"
-            android:exported="false"
-            android:label="Bacteria Activity">
-        </activity>
-        <activity
-            android:name=".library.gallery.DigestiveActivity"
-            android:exported="false"
-            android:label="Bacteria Activity">
-        </activity>
-        <activity
-            android:name=".library.gallery.HeartActivity"
-            android:exported="false"
-            android:label="Bacteria Activity">
-        </activity>
-        <activity
-            android:name=".library.gallery.PlatypusActivity"
-            android:exported="false"
-            android:label="Bacteria Activity">
-        </activity>
-
         <!--Modules-->
         <activity
             android:name="com.unity3d.player.UnityPlayerGameActivity"
             android:configChanges="orientation|screenSize"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
-            tools:replace="android:configChanges, android:theme" />
+            android:exported="true"
+            android:launchMode="singleTask"
+            tools:replace="android:configChanges, android:theme"
+            tools:targetApi="tiramisu" />
 
 
     </application>

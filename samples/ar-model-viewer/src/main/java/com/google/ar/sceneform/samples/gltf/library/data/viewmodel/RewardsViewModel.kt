@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library.data.viewmodel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.ar.sceneform.samples.gltf.library.data.local.dao.MiniGameDao
@@ -14,27 +15,34 @@ import kotlinx.coroutines.withContext
 
 class RewardsViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val db = AppDatabase.getDatabase(application, viewModelScope) // Fix: Use viewModelScope
+    private val db = AppDatabase.getDatabase(application, viewModelScope)
     private val miniGameDao: MiniGameDao = db.miniGameDao()
-    private val pointsDao: PointsDao = db.brainPointsDao() // Fix: Correct function name
+    private val pointsDao: PointsDao = db.brainPointsDao()
 
-    fun unlockMiniGameAndDeductPoints(selectedItem: RewardItemData, onComplete: () -> Unit) {
+    fun unlockMiniGameAndDeductPoints(selectedItem: RewardItemData, onComplete: suspend () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            val currentPoints = withContext(Dispatchers.IO) { pointsDao.getPoints() } // Fix: Avoid main thread call
+            val currentPoints = pointsDao.getPoints()
 
             if (currentPoints >= selectedItem.cost) {
                 pointsDao.updatePoints(currentPoints - selectedItem.cost)
 
-                if (selectedItem.name == "11") { // Mini-game ID
-                    val miniGame = miniGameDao.getMiniGameById("11")
-                    if (miniGame == null) { // Fix: Check for null instead of 0
-                        miniGameDao.insertGame(MiniGameEntity("11", "Mini-Game", true))
-                    } else if (!miniGame.isUnlocked) {
-                        miniGameDao.updateUnlockStatus("11", true)
-                    }
+                val miniGame = miniGameDao.getMiniGameById("11")
+                if (miniGame == null) {
+                    miniGameDao.insertGame(MiniGameEntity("11", "Mini-Game", true))
+                } else if (!miniGame.isUnlocked) {
+                    miniGameDao.updateUnlockStatus("11", true)
+                }
+
+                // Ensure the database updates are applied
+                val updatedMiniGame = miniGameDao.getMiniGameById("11")
+                Log.d("MiniGameDebug", "Updated MiniGame: $updatedMiniGame")
+
+                withContext(Dispatchers.Main) {
+                    onComplete()
                 }
             }
-            onComplete()
         }
     }
+
 }
+

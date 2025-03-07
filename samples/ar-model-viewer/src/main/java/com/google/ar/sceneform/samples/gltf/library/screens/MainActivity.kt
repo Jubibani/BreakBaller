@@ -52,7 +52,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 import kotlinx.coroutines.CoroutineScope
@@ -207,6 +206,12 @@ fun MainScreen(
                             // Start HelloAR activity (AR scanning)
                             val intent = Intent(context, com.google.ar.sceneform.samples.gltf.library.Activity::class.java)
                             context.startActivity(intent)
+
+                            // [For Development]
+                           /* val intent = Intent(context, com.unity3d.player.UnityPlayerGameActivity::class.java)
+                            context.startActivity(intent)*/
+
+
                         }
                     )
                 }
