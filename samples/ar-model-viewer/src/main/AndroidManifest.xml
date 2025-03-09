@@ -130,8 +130,10 @@
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:exported="true"
             android:launchMode="singleTask"
+            android:noHistory="true"
             tools:replace="android:configChanges, android:theme"
-            tools:targetApi="tiramisu" />
+            tools:targetApi="tiramisu"
+        />
 
 
     </application>

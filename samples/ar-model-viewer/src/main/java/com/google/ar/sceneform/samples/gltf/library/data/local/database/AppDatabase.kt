@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library.data.local.database
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -48,11 +49,18 @@ abstract class AppDatabase : RoomDatabase() {
 
     // Callback to populate database on creation
     private class DatabaseCallback(private val scope: CoroutineScope) : RoomDatabase.Callback() {
+
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
             INSTANCE?.let { database ->
                 scope.launch {
-                    populateDatabase(database.modelDao(), database.brainPointsDao(), database.miniGameDao())
+                    // Insert only if the game does not already exist
+                    val existingGames = database.miniGameDao().getAllMiniGames()
+                    Log.d("DatabaseDebug", "Existing games: $existingGames")
+
+                    if (existingGames.isEmpty()) {
+                        populateDatabase(database.modelDao(), database.brainPointsDao(), database.miniGameDao())
+                    }
                 }
             }
         }
@@ -62,6 +70,7 @@ abstract class AppDatabase : RoomDatabase() {
             brainPointsDao: PointsDao,
             miniGameDao: MiniGameDao
         ) {
+            //populate the database with models
             modelDao.insertModel(ModelEntity("Amphibian", "models/amphibian.glb", R.layout.amphibian_infos, "Tap to learn more!", R.raw.froggy))
             modelDao.insertModel(ModelEntity("Bacteria", "models/bacteria.glb", R.layout.bacteria_infos, "Tap to explore bacterial structures!", R.raw.bacteriasound))
             modelDao.insertModel(ModelEntity("Digestive", "models/digestive.glb", R.layout.digestive_infos, "Tap to see the digestive process!", R.raw.digestsound))
@@ -71,8 +80,15 @@ abstract class AppDatabase : RoomDatabase() {
             // Ensure Initial Brain Points Exist
             brainPointsDao.updatePoints(0)
 
-            // Ensure Mini-Game Data Exists
-            miniGameDao.insertGame(MiniGameEntity("11", "Mini-Game", false)) // Fix: Populate mini-games
+            // Populate the database with contents ready to be unlocked and interacted as rewards
+            miniGameDao.insertGame(MiniGameEntity("1", "RewardsContent1", false))
+            miniGameDao.insertGame(MiniGameEntity("2", "RewardsContent2", false))
+            miniGameDao.insertGame(MiniGameEntity("11", "RewardsContent3", false))
+
+            Log.d("DatabaseDebug", "Inserted initial rewards")
+
+
+
         }
     }
 }
