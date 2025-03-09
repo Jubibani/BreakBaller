@@ -55,6 +55,9 @@ interface MiniGameDao {
     suspend fun updateUnlockStatus(gameId: String, isUnlocked: Boolean)
 
     @Query("SELECT * FROM mini_games")
+    fun getAllMiniGamesFlow(): Flow<List<MiniGameEntity>> //  Use Flow for LiveData updates
+
+    @Query("SELECT * FROM mini_games")
     suspend fun getAllMiniGames(): List<MiniGameEntity>
 
 }

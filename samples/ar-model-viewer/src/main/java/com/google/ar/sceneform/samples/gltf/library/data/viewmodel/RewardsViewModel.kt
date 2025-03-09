@@ -1,5 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library.data.viewmodel
 
+//Forewarning! Many Debug Logs and Comments! The developer is learning slow.
+
 import android.app.Application
 import android.content.Intent
 import android.util.Log
@@ -13,54 +15,64 @@ import com.google.ar.sceneform.samples.gltf.library.data.local.entities.MiniGame
 import com.google.ar.sceneform.samples.gltf.library.screens.RewardItemData
 import com.unity3d.player.UnityPlayerGameActivity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
-
-//Forewarning! Many Debug Logs and Comments! The developer is learning slow.
 
 class RewardsViewModel(application: Application) : AndroidViewModel(application) {
-
     private val db = AppDatabase.getDatabase(application, viewModelScope)
     private val miniGameDao: MiniGameDao = db.miniGameDao()
     private val pointsDao: PointsDao = db.brainPointsDao()
 
+    //  StateFlow for unlocked mini-games (Auto-updates UI)
+    private val _rewardItems = MutableStateFlow<List<RewardItemData>>(emptyList())
+    val rewardItems: StateFlow<List<RewardItemData>> = _rewardItems.asStateFlow()
 
-    //  Unlock a mini-game and deduct points
-    fun unlockMiniGameAndDeductPoints(gameId: String, cost: Int, onComplete: () -> Unit) {
+    init {
+        refreshRewards() // Load rewards on start
+    }
+
+    //  Refresh rewards from DB
+    private fun refreshRewards() {
         viewModelScope.launch(Dispatchers.IO) {
-            Log.d("MiniGameDebug", "Attempting to unlock $gameId")
+            val miniGames = miniGameDao.getAllMiniGames()
+            Log.d("DatabaseDebug", "Fetched from DB: $miniGames") //  CHECK IF DATA EXISTS
 
+            _rewardItems.value = miniGames.map { game ->
+                RewardItemData(
+                    id = game.gameId,
+                    name = game.name,
+                    description = "Unlock to play ${game.name}",
+                    imageResId = R.drawable.question_icon,
+                    cost = if (game.gameId == "11") 50 else 75,
+                    isUnlocked = game.isUnlocked,
+                    onClickAction = {}
+                )
+            }
+            Log.d("DatabaseDebug", "Mapped reward items: ${_rewardItems.value}")
+        }
+    }
+
+
+    //  Unlock and refresh data
+    fun unlockMiniGameAndDeductPoints(gameId: String, cost: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
             val currentPoints = pointsDao.getPoints()
-            Log.d("MiniGameDebug", "Current points: $currentPoints, Cost: $cost")
-
             if (currentPoints >= cost) {
                 pointsDao.updatePoints(currentPoints - cost)
-                Log.d("MiniGameDebug", "Deducted $cost points. New balance: ${currentPoints - cost}")
-
                 val miniGame = miniGameDao.getMiniGameById(gameId)
 
-                if (miniGame == null) {
-                    Log.d("MiniGameDebug", "Inserting new game: $gameId")
+                if (miniGame == null || !miniGame.isUnlocked) {
                     miniGameDao.insertGame(MiniGameEntity(gameId, "Unknown Game", true))
-                } else if (!miniGame.isUnlocked) {
-                    Log.d("MiniGameDebug", "Updating unlock status: $gameId")
-                    miniGameDao.updateUnlockStatus(gameId, true)
-                } else {
-                    Log.d("MiniGameDebug", "Game $gameId is already unlocked!")
                 }
 
-                val updatedMiniGame = miniGameDao.getMiniGameById(gameId)
-                Log.d("MiniGameDebug", "Updated MiniGame ($gameId): $updatedMiniGame")
-
-                withContext(Dispatchers.Main) {
-                    onComplete()
-                }
-            } else {
-                Log.d("MiniGameDebug", "Not enough points to unlock $gameId")
+                refreshRewards() // 🔥 Automatically update UI
             }
         }
     }
+
 
     //  Fetch all mini-games (now non-suspend)
     fun getAllMiniGames(): List<MiniGameEntity> {
