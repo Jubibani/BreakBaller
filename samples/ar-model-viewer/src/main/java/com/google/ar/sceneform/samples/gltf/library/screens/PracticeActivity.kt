@@ -383,6 +383,7 @@ fun RewardsContent(
     var showDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
     var unlockedMiniGames by remember { mutableStateOf(emptyMap<String, Boolean>()) }
+
     var rewardItems by remember { mutableStateOf<List<RewardItemData>>(emptyList()) }
 
     //  Fetch unlocked mini-games
@@ -419,7 +420,8 @@ fun RewardsContent(
 
     }
 
-    // ✅ Show purchase confirmation dialog
+
+    //  Show purchase confirmation dialog
     if (showDialog && selectedItem != null) {
         ConfirmPurchaseDialog(
             itemName = selectedItem!!.name,
@@ -429,23 +431,9 @@ fun RewardsContent(
             onConfirm = {
                 playPurchaseSound()
                 showDialog = false
-
-                coroutineScope.launch {
-                    selectedItem?.let { selected ->
-                        if (!unlockedMiniGames[selected.id]!!) {  // Prevent duplicate purchases
-                            Log.d("MiniGameDebug", "Unlocking: ${selected.id}")
-                            viewModel.unlockMiniGameAndDeductPoints(selected.id, selected.cost) {
-                                coroutineScope.launch {
-                                    val allMiniGames = viewModel.getAllMiniGames()
-                                    unlockedMiniGames = allMiniGames.associate { it.gameId to it.isUnlocked }
-                                    Log.d("MiniGameDebug", "Updated unlocked mini-games: $unlockedMiniGames")
-                                    Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        } else {
-                            Log.d("MiniGameDebug", "Already unlocked: ${selected.id}")
-                        }
-                    }
+                selectedItem?.let { selected ->
+                    viewModel.unlockMiniGameAndDeductPoints(selected.id, selected.cost) // ✅ FIXED
+                    Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
                 }
             },
             onDismiss = { showDialog = false }
