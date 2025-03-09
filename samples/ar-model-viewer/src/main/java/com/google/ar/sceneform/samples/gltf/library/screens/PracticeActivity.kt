@@ -47,7 +47,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -310,16 +309,16 @@ fun LearnAndEarnContent(
         listOf(
             PracticeItemData("Quiz Challenge", "Test your knowledge", R.drawable.quiz_icon) {
                 playSwitchSound()
-                Toast.makeText(context, "Starting Quiz Challenge", Toast.LENGTH_SHORT).show()
+
                 addPoints(10)
             },
             PracticeItemData("Flashcards", "Review key concepts", R.drawable.flashcard_icon) {
                 playSwitchSound()
-                Toast.makeText(context, "Opening Flashcards", Toast.LENGTH_SHORT).show()
+
             },
             PracticeItemData("AR Practice", "Learn with augmented reality", R.drawable.quiz_icon) {
                 playSwitchSound()
-                Toast.makeText(context, "Launching AR Practice", Toast.LENGTH_SHORT).show()
+
             }
         )
     }
@@ -378,25 +377,13 @@ fun RewardsContent(
     viewModel: RewardsViewModel
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-
     var showDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
-    var unlockedMiniGames by remember { mutableStateOf(emptyMap<String, Boolean>()) }
 
-    var rewardItems by remember { mutableStateOf<List<RewardItemData>>(emptyList()) }
+    // ✅ Automatically updates UI when StateFlow changes
+    val rewardItems by viewModel.rewardItems.collectAsState()
 
-    //  Fetch unlocked mini-games
-    LaunchedEffect(Unit) {
-        val allMiniGames = viewModel.getAllMiniGames()
-        unlockedMiniGames = allMiniGames.associate { it.gameId to it.isUnlocked }
-        Log.d("MiniGameDebug", "Loaded unlocked mini-games: $unlockedMiniGames")
-    }
-
-    //  Fetch reward items safely
-    LaunchedEffect(Unit) {
-        rewardItems = viewModel.getMiniGameRewards()
-    }
+    Log.d("UI Debug", "Reward items updated: $rewardItems") // 🔥 DEBUG HERE
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(3),
@@ -411,17 +398,14 @@ fun RewardsContent(
                     selectedItem = selected
                     showDialog = true
                 } else {
-                    //  If this is missing, unlocked items do nothing!
                     val intent = Intent(context, UnityPlayerGameActivity::class.java)
                     context.startActivity(intent)
                 }
             }
         }
-
     }
 
-
-    //  Show purchase confirmation dialog
+    // Show purchase confirmation dialog
     if (showDialog && selectedItem != null) {
         ConfirmPurchaseDialog(
             itemName = selectedItem!!.name,
@@ -432,7 +416,7 @@ fun RewardsContent(
                 playPurchaseSound()
                 showDialog = false
                 selectedItem?.let { selected ->
-                    viewModel.unlockMiniGameAndDeductPoints(selected.id, selected.cost) // ✅ FIXED
+                    viewModel.unlockMiniGameAndDeductPoints(selected.id, selected.cost)
                     Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
                 }
             },
@@ -440,6 +424,7 @@ fun RewardsContent(
         )
     }
 }
+
 
 
 
