@@ -46,12 +46,16 @@ interface MiniGameDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertGame(game: MiniGameEntity)
 
+
     @Query("SELECT * FROM mini_games WHERE gameId = :gameId")
     suspend fun getMiniGameById(gameId: String): MiniGameEntity?
+
 
     @Query("UPDATE mini_games SET isUnlocked = :isUnlocked WHERE gameId = :gameId")
     suspend fun updateUnlockStatus(gameId: String, isUnlocked: Boolean)
 
     @Query("SELECT * FROM mini_games")
-    fun getAllMiniGames(): LiveData<List<MiniGameEntity>>
+    suspend fun getAllMiniGames(): List<MiniGameEntity>
+
 }
+

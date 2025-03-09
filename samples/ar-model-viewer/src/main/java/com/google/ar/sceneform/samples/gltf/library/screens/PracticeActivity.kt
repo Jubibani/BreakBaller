@@ -1,12 +1,12 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
+import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,6 +47,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -68,6 +69,7 @@ import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatab
 import com.google.ar.sceneform.samples.gltf.library.data.repository.PointsRepository
 import com.google.ar.sceneform.samples.gltf.library.data.viewmodel.RewardsViewModel
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
+import com.unity3d.player.UnityPlayerGameActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -188,7 +190,7 @@ fun PracticeScreen(
             val newPoints = currentPoints + earnedPoints
             repository.updatePoints(newPoints) // Update points
 
-            Log.d("PointsDebug", "Updated Points: $newPoints") // 🔍 Debugging log
+            Log.d("PointsDebug", "Updated Points: $newPoints") //  Debugging log
         }
     }
 
@@ -228,7 +230,7 @@ fun PracticeScreen(
                     }
                 },
                 actions = {
-                    PointsDisplay(points) // ✅ Display updated points
+                    PointsDisplay(points)
                 }
             )
         }
@@ -285,12 +287,16 @@ data class PracticeItemData(
 )
 
 data class RewardItemData(
+    val id: String,
     val name: String,
     val description: String,
     val imageResId: Int,
     val cost: Int,
+    val isUnlocked: Boolean,
     val onClickAction: (RewardItemData) -> Unit
 )
+
+
 @Composable
 fun LearnAndEarnContent(
     playSwitchSound: () -> Unit,
@@ -363,8 +369,6 @@ fun PointsDisplay(points: Int) {
     }
 }
 
-
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RewardsContent(
     points: Int,
@@ -378,25 +382,19 @@ fun RewardsContent(
 
     var showDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
+    var unlockedMiniGames by remember { mutableStateOf(emptyMap<String, Boolean>()) }
+    var rewardItems by remember { mutableStateOf<List<RewardItemData>>(emptyList()) }
 
-    val rewardItems = remember {
-        listOf(
-            RewardItemData("1", "Redeem your points", R.drawable.question_icon, 10) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("2", "Redeem your points", R.drawable.question_icon, 25) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            },
-            RewardItemData("11", "Unlock Mini-Game", R.drawable.question_icon, 50) {
-                playSwitchSound()
-                selectedItem = it
-                showDialog = true
-            }
-        )
+    //  Fetch unlocked mini-games
+    LaunchedEffect(Unit) {
+        val allMiniGames = viewModel.getAllMiniGames()
+        unlockedMiniGames = allMiniGames.associate { it.gameId to it.isUnlocked }
+        Log.d("MiniGameDebug", "Loaded unlocked mini-games: $unlockedMiniGames")
+    }
+
+    //  Fetch reward items safely
+    LaunchedEffect(Unit) {
+        rewardItems = viewModel.getMiniGameRewards()
     }
 
     LazyVerticalGrid(
@@ -407,22 +405,45 @@ fun RewardsContent(
     ) {
         items(rewardItems) { item ->
             RewardItemCard(item) { selected ->
-                selectedItem = selected
-                showDialog = true
+                Log.d("MiniGameDebug", "Item clicked: ${selected.name}, isUnlocked=${selected.isUnlocked}")
+                if (!item.isUnlocked) {
+                    selectedItem = selected
+                    showDialog = true
+                } else {
+                    //  If this is missing, unlocked items do nothing!
+                    val intent = Intent(context, UnityPlayerGameActivity::class.java)
+                    context.startActivity(intent)
+                }
             }
         }
+
     }
 
+    // ✅ Show purchase confirmation dialog
     if (showDialog && selectedItem != null) {
         ConfirmPurchaseDialog(
             itemName = selectedItem!!.name,
             requiredPoints = selectedItem!!.cost,
-            userPoints = points, // Use Room-based points instead of SharedPreferences
+            userPoints = points,
             onConfirm = {
                 playPurchaseSound()
+                showDialog = false
+
                 coroutineScope.launch {
-                    viewModel.unlockMiniGameAndDeductPoints(selectedItem!!) {
-                        showDialog = false
+                    selectedItem?.let { selected ->
+                        if (!unlockedMiniGames[selected.id]!!) {  // Prevent duplicate purchases
+                            Log.d("MiniGameDebug", "Unlocking: ${selected.id}")
+                            viewModel.unlockMiniGameAndDeductPoints(selected.id, selected.cost) {
+                                coroutineScope.launch {
+                                    val allMiniGames = viewModel.getAllMiniGames()
+                                    unlockedMiniGames = allMiniGames.associate { it.gameId to it.isUnlocked }
+                                    Log.d("MiniGameDebug", "Updated unlocked mini-games: $unlockedMiniGames")
+                                    Toast.makeText(context, "Mini-game unlocked!", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        } else {
+                            Log.d("MiniGameDebug", "Already unlocked: ${selected.id}")
+                        }
                     }
                 }
             },
@@ -477,8 +498,12 @@ fun RewardItemCard(item: RewardItemData, onItemSelected: (RewardItemData) -> Uni
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
-            .clickable { onItemSelected(item) }, // ✅ Only select the item, do NOT buy yet
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            .clickable {
+                Log.d("MiniGameDebug", "Clicked on ${item.name}, isUnlocked=${item.isUnlocked}")
+                onItemSelected(item)
+            },
+
+            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -490,6 +515,7 @@ fun RewardItemCard(item: RewardItemData, onItemSelected: (RewardItemData) -> Uni
         }
     }
 }
+
 
 
 @Composable
