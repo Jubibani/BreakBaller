@@ -49,21 +49,28 @@ abstract class AppDatabase : RoomDatabase() {
 
     // Callback to populate database on creation
     private class DatabaseCallback(private val scope: CoroutineScope) : RoomDatabase.Callback() {
-
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
             INSTANCE?.let { database ->
                 scope.launch {
-                    // Insert only if the game does not already exist
-                    val existingGames = database.miniGameDao().getAllMiniGames()
-                    Log.d("DatabaseDebug", "Existing games: $existingGames")
+                    try {
+                        val modelDao = database.modelDao()
+                        val brainPointsDao = database.brainPointsDao()
+                        val miniGameDao = database.miniGameDao()
 
-                    if (existingGames.isEmpty()) {
-                        populateDatabase(database.modelDao(), database.brainPointsDao(), database.miniGameDao())
+                        val existingGames = miniGameDao.getAllMiniGames()
+                        Log.d("DatabaseDebug", "Existing games on create: $existingGames")
+
+                        if (existingGames.isEmpty()) {
+                            populateDatabase(modelDao, brainPointsDao, miniGameDao)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("DatabaseDebug", "Error inserting initial data: ${e.message}")
                     }
                 }
             }
         }
+
 
         suspend fun populateDatabase(
             modelDao: ModelDao,
@@ -81,14 +88,31 @@ abstract class AppDatabase : RoomDatabase() {
             brainPointsDao.updatePoints(0)
 
             // Populate the database with contents ready to be unlocked and interacted as rewards
-            miniGameDao.insertGame(MiniGameEntity("1", "RewardsContent1", false))
-            miniGameDao.insertGame(MiniGameEntity("2", "RewardsContent2", false))
-            miniGameDao.insertGame(MiniGameEntity("11", "RewardsContent3", false))
+            miniGameDao.insertGame(MiniGameEntity("1", "Reward Item 1", false))
+            miniGameDao.insertGame(MiniGameEntity("2", "Reward Item 2", false))
+            miniGameDao.insertGame(MiniGameEntity("3", "Reward Item 3", false))
+            miniGameDao.insertGame(MiniGameEntity("4", "Reward Item 4", false))
+            miniGameDao.insertGame(MiniGameEntity("5", "Unity Mini-Game", false)) // Unity Mini-Game to be unlocked
+
 
             Log.d("DatabaseDebug", "Inserted initial rewards")
 
 
 
         }
+
+
+
+/*        suspend fun populateDatabase(miniGameDao: MiniGameDao) {
+            Log.d("DatabaseDebug", "Inserting initial mini-games")
+            miniGameDao.insertGame(MiniGameEntity("1", "RewardsContent1", false))
+            miniGameDao.insertGame(MiniGameEntity("2", "RewardsContent2", false))
+            miniGameDao.insertGame(MiniGameEntity("11", "RewardsContent3", false))
+
+            Log.d("DatabaseDebug", "Inserted mini-games successfully!")
+        }*/
     }
-}
+
+
+    }
+

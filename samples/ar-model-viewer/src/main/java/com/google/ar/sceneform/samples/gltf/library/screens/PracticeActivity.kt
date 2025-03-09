@@ -1,6 +1,5 @@
 package com.google.ar.sceneform.samples.gltf.library.screens
 
-import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
@@ -9,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,8 +29,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.VideogameAsset
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,12 +40,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -55,20 +58,22 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.fragment.app.FragmentActivity
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatabase
 import com.google.ar.sceneform.samples.gltf.library.data.repository.PointsRepository
 import com.google.ar.sceneform.samples.gltf.library.data.viewmodel.RewardsViewModel
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
-import com.unity3d.player.UnityPlayerGameActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -380,29 +385,56 @@ fun RewardsContent(
     var showDialog by remember { mutableStateOf(false) }
     var selectedItem by remember { mutableStateOf<RewardItemData?>(null) }
 
-    // ✅ Automatically updates UI when StateFlow changes
+
+
+    //  Automatically updates UI when StateFlow changes
     val rewardItems by viewModel.rewardItems.collectAsState()
 
     Log.d("UI Debug", "Reward items updated: $rewardItems") // 🔥 DEBUG HERE
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(3),
-        modifier = Modifier.fillMaxSize().padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(rewardItems) { item ->
-            RewardItemCard(item) { selected ->
-                Log.d("MiniGameDebug", "Item clicked: ${selected.name}, isUnlocked=${selected.isUnlocked}")
-                if (!item.isUnlocked) {
-                    selectedItem = selected
-                    showDialog = true
-                } else {
-                    val intent = Intent(context, UnityPlayerGameActivity::class.java)
-                    context.startActivity(intent)
+    if (points > 0) {
+        // Show rewards if the user has points
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(3),
+            modifier = Modifier.fillMaxSize().padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(rewardItems) { item ->
+                RewardItemCard(item) { selected ->
+                    Log.d("MiniGameDebug", "Item clicked: ${selected.name}, isUnlocked=${selected.isUnlocked}")
+                    if (!item.isUnlocked) {
+                        selectedItem = selected
+                        showDialog = true
+                    } else {
+                        selected.onClickAction.invoke(selected) // Invoke the function
+                    }
                 }
+
             }
         }
+    } else {
+        // Show message when the user has no points
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.brain), // Use your brain icon here
+                contentDescription = "Brain points icon",
+                modifier = Modifier.size(80.dp), // Adjust size as needed
+                tint = Color.Unspecified // Keeps original icon color
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = "Collect Brain Points!",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFFD700)
+            )
+        }
+
     }
 
     // Show purchase confirmation dialog
@@ -467,25 +499,34 @@ fun PracticeItemCard(item: PracticeItemData) {
 }
 
 @Composable
-fun RewardItemCard(item: RewardItemData, onItemSelected: (RewardItemData) -> Unit) {
+fun RewardItemCard(item: RewardItemData, onClick: (RewardItemData) -> Unit) {
     Card(
         modifier = Modifier
             .padding(8.dp)
-            .fillMaxWidth()
-            .clickable {
-                Log.d("MiniGameDebug", "Clicked on ${item.name}, isUnlocked=${item.isUnlocked}")
-                onItemSelected(item)
-            },
-
-            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+            .size(100.dp)
+            .clickable { onClick(item) }
+            .border(
+                width = 2.dp,
+                color = if (item.isUnlocked) Color.Green else Color.Gray, //  Green if unlocked, Gray if locked
+                shape = RoundedCornerShape(10.dp)
+            )
+            .alpha(if (item.isUnlocked) 1f else 0.5f), // ✅ Dim locked items
+        shape = RoundedCornerShape(10.dp),
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.fillMaxSize()
         ) {
-            Image(painter = painterResource(id = item.imageResId), contentDescription = null)
-            Text(text = item.name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            Text(text = "${item.cost} Points", fontSize = 14.sp, color = Color.Gray)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    imageVector = if (item.isUnlocked) Icons.Default.VideogameAsset else Icons.Default.Lock, // 🎮 or  icon
+                    contentDescription = null,
+                    tint = if (item.isUnlocked) Color.Green else Color.Gray,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(text = item.name, fontSize = 14.sp, textAlign = TextAlign.Center)
+            }
         }
     }
 }
@@ -501,43 +542,60 @@ fun ConfirmPurchaseDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    if (isUnlocked) {
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            title = { Text("Already Unlocked") },
-            text = { Text("$itemName is already unlocked.") },
-            confirmButton = {
-                TextButton(onClick = { onDismiss() }) {
-                    Text("OK")
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() } // Snackbar State
+
+    Dialog(onDismissRequest = { onDismiss() }) {
+        Card(
+            modifier = Modifier.padding(16.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "Unlock $itemName?", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(text = "Cost: $requiredPoints Brain Points", fontSize = 14.sp)
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = {
+                            onDismiss()
+                        }
+                    ) {
+                        Text("Cancel")
+                    }
+
+                    Button(
+                        onClick = {
+                            if (userPoints >= requiredPoints) {
+                                onConfirm()
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Mini-game unlocked!") //  Success Message
+                                }
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Not enough points!") //  Error Message
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (userPoints >= requiredPoints) Color.Green else Color.Gray
+                        ),
+                        enabled = userPoints >= requiredPoints // Disable if not enough points
+                    ) {
+                        Text("Unlock")
+                    }
                 }
             }
-        )
-    } else if (userPoints >= requiredPoints) {
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            title = { Text("Confirm Purchase") },
-            text = { Text("Do you want to unlock $itemName for $requiredPoints brains?") },
-            confirmButton = {
-                Button(onClick = { onConfirm() }) {
-                    Text("Buy")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { onDismiss() }) {
-                    Text("Cancel")
-                }
-            }
-        )
-    } else {
-        AlertDialog(
-            onDismissRequest = { onDismiss() },
-            title = { Text("Not Enough Brains") },
-            text = { Text("You need $requiredPoints brains to unlock $itemName.") },
-            confirmButton = {
-                TextButton(onClick = { onDismiss() }) {
-                    Text("OK")
-                }
-            }
-        )
+        }
     }
+
+    SnackbarHost(hostState = snackbarHostState) // Show Snackbar at the bottom
 }
