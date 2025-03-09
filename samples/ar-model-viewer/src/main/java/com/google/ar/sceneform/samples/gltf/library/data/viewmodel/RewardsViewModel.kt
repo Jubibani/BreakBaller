@@ -30,29 +30,21 @@ class RewardsViewModel(application: Application) : AndroidViewModel(application)
     fun unlockMiniGameAndDeductPoints(gameId: String, cost: Int, onComplete: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             Log.d("MiniGameDebug", "Attempting to unlock $gameId")
-
+    
             val currentPoints = pointsDao.getPoints()
             Log.d("MiniGameDebug", "Current points: $currentPoints, Cost: $cost")
-
+    
             if (currentPoints >= cost) {
                 pointsDao.updatePoints(currentPoints - cost)
                 Log.d("MiniGameDebug", "Deducted $cost points. New balance: ${currentPoints - cost}")
-
+    
                 val miniGame = miniGameDao.getMiniGameById(gameId)
-
-                if (miniGame == null) {
+    
+                if (miniGame == null || !miniGame.isUnlocked) {
                     Log.d("MiniGameDebug", "Inserting new game: $gameId")
                     miniGameDao.insertGame(MiniGameEntity(gameId, "Unknown Game", true))
-                } else if (!miniGame.isUnlocked) {
-                    Log.d("MiniGameDebug", "Updating unlock status: $gameId")
-                    miniGameDao.updateUnlockStatus(gameId, true)
-                } else {
-                    Log.d("MiniGameDebug", "Game $gameId is already unlocked!")
                 }
-
-                val updatedMiniGame = miniGameDao.getMiniGameById(gameId)
-                Log.d("MiniGameDebug", "Updated MiniGame ($gameId): $updatedMiniGame")
-
+    
                 withContext(Dispatchers.Main) {
                     onComplete()
                 }

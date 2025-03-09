@@ -425,6 +425,7 @@ fun RewardsContent(
             itemName = selectedItem!!.name,
             requiredPoints = selectedItem!!.cost,
             userPoints = points,
+            isUnlocked = selectedItem!!.isUnlocked,
             onConfirm = {
                 playPurchaseSound()
                 showDialog = false
@@ -523,10 +524,22 @@ fun ConfirmPurchaseDialog(
     itemName: String,
     requiredPoints: Int,
     userPoints: Int,
+    isUnlocked: Boolean,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    if (userPoints >= requiredPoints) {
+    if (isUnlocked) {
+        AlertDialog(
+            onDismissRequest = { onDismiss() },
+            title = { Text("Already Unlocked") },
+            text = { Text("$itemName is already unlocked.") },
+            confirmButton = {
+                TextButton(onClick = { onDismiss() }) {
+                    Text("OK")
+                }
+            }
+        )
+    } else if (userPoints >= requiredPoints) {
         AlertDialog(
             onDismissRequest = { onDismiss() },
             title = { Text("Confirm Purchase") },
