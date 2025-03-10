@@ -91,10 +91,12 @@ class Activity : AppCompatActivity(R.layout.activity) {
             switchButton.thumbTintList = ContextCompat.getColorStateList(this, R.color.purple_500)
             switchButton.trackTintList = ContextCompat.getColorStateList(this, R.color.purple_500)
             modeTextView.text = "Self-Paced Mode"
+
         } else {
             switchButton.thumbTintList = ContextCompat.getColorStateList(this, R.color.gold)
             switchButton.trackTintList = ContextCompat.getColorStateList(this, R.color.gold)
             modeTextView.text = "Recitation Mode"
+
         }
     }
 

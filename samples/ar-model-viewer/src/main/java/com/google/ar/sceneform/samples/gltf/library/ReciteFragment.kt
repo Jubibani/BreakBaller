@@ -11,6 +11,8 @@ import android.graphics.Matrix
 import android.graphics.Paint
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -42,7 +44,6 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-
 class ReciteFragment : Fragment() {
     private lateinit var cameraExecutor: ExecutorService
     private lateinit var previewView: PreviewView
@@ -56,19 +57,19 @@ class ReciteFragment : Fragment() {
     private lateinit var textOverlay: TextOverlay
     private var recognizedText: Text? = null
 
-    //reset
-    private lateinit var refreshButton: FloatingActionButton
-    private lateinit var refreshSound: MediaPlayer
-
     //close
     private lateinit var closeButton: FloatingActionButton
+
+    //sounds
+    private lateinit var refreshSound: MediaPlayer
+    private lateinit var cameraSound: MediaPlayer
+    private lateinit var disregardSound: MediaPlayer
 
     //switch button
     private lateinit var switchButton: SwitchMaterial
     //speech recognition
     private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
     private lateinit var startRecitingButton: FloatingActionButton
-
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions.all { it.value }) {
@@ -80,14 +81,9 @@ class ReciteFragment : Fragment() {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_recite, container, false)
-
-
     }
-
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
 
         try {
             previewView = view.findViewById(R.id.previewView) ?: throw NullPointerException("PreviewView not found")
@@ -99,22 +95,22 @@ class ReciteFragment : Fragment() {
             textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
 
-            // Reset
-            refreshButton = view.findViewById(R.id.fragmentRefreshButton) ?: throw NullPointerException("Refresh button not found")
-            refreshButton.visibility = View.VISIBLE
-            refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
-            refreshButton.setOnClickListener {
-                refreshSound.start()
-                resetCamera()
-            }
+            // Initialize sounds
+            cameraSound = MediaPlayer.create(requireContext(), R.raw.camera)
+            disregardSound = MediaPlayer.create(requireContext(), R.raw.disregard)
 
             //close
             closeButton = view.findViewById(R.id.closeButton)
+            refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+            closeButton.setOnClickListener {
+
+                resetCamera()
+                hideCloseButton()
+                showRecitationButtons() // Show all buttons for recitation mode
+            }
 
             //switch
             switchButton = requireActivity().findViewById(R.id.switchButton)
-
-
 
             if (allPermissionsGranted()) {
                 startCamera()
@@ -124,6 +120,7 @@ class ReciteFragment : Fragment() {
 
             // take camera and perform text recognition and speech recognition
             captureButton.setOnClickListener {
+                cameraSound.start() // Play camera sound
                 takePhoto()
                 startReciting()
             } ?: throw NullPointerException("Start reciting button not found")
@@ -191,16 +188,21 @@ class ReciteFragment : Fragment() {
             }
         }, ContextCompat.getMainExecutor(requireContext()))
     }
-    private fun resetCamera() {
-        imageView.visibility = View.GONE
-        previewView.visibility = View.VISIBLE
-        capturedBitmap = null
-        recognizedText = null
-        textOverlay.recognizedText = null  // Reset the recognized text in TextOverlay
-        textOverlay.invalidate()  // Force redraw of the TextOverlay
-        startCamera()  // Restart the camera
-    }
 
+    private fun resetCamera() {
+        disregardSound.start()
+
+        // Delay the execution of the following code by 500 milliseconds
+        Handler(Looper.getMainLooper()).postDelayed({
+            imageView.visibility = View.GONE
+            previewView.visibility = View.VISIBLE
+            capturedBitmap = null
+            recognizedText = null
+            textOverlay.recognizedText = null  // Reset the recognized text in TextOverlay
+            textOverlay.invalidate()  // Force redraw of the TextOverlay
+            startCamera()  // Restart the camera
+        }, 300) // 500 milliseconds delay
+    }
 
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun processImageProxy(imageProxy: ImageProxy) {
@@ -243,7 +245,6 @@ class ReciteFragment : Fragment() {
 
                         // Hide all buttons except close button
                         captureButton.visibility = View.GONE
-                        refreshButton.visibility = View.GONE
                         switchButton.visibility = View.GONE
                         showCloseButton()
 
@@ -269,7 +270,6 @@ class ReciteFragment : Fragment() {
     // Add this function to show all buttons for recitation mode
     private fun showRecitationButtons() {
         captureButton.visibility = View.VISIBLE
-        refreshButton.visibility = View.VISIBLE
         switchButton.visibility = View.VISIBLE
         // Add any other buttons that should be visible in recitation mode
     }
@@ -283,12 +283,6 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    // Add this function to handle the refresh button click
-    private fun onRefreshButtonClick() {
-        stopReciting()
-        resetCamera()
-    }
-
     private fun stopReciting() {
         speechRecognitionHelper.stopListening()
         val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
@@ -300,6 +294,7 @@ class ReciteFragment : Fragment() {
         }
         startActivity(intent)
     }
+
     private fun showCloseButton() {
         closeButton.visibility = View.VISIBLE
     }
@@ -307,6 +302,7 @@ class ReciteFragment : Fragment() {
     private fun hideCloseButton() {
         closeButton.visibility = View.GONE
     }
+
     private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
         val image = InputImage.fromBitmap(bitmap, 0)
@@ -322,7 +318,8 @@ class ReciteFragment : Fragment() {
     }
 
     private fun drawTextBoundingBoxes(visionText: Text) {
-        val canvas = Canvas(capturedBitmap!!)
+        val bitmap = capturedBitmap ?: return // Return if capturedBitmap is null
+        val canvas = Canvas(bitmap)
         val paint = Paint().apply {
             color = Color.RED
             style = Paint.Style.STROKE
@@ -337,7 +334,7 @@ class ReciteFragment : Fragment() {
             }
         }
 
-        imageView.setImageBitmap(capturedBitmap)
+        imageView.setImageBitmap(bitmap)
     }
 
     private fun highlightTextAtPoint(x: Int, y: Int) {
@@ -382,6 +379,8 @@ class ReciteFragment : Fragment() {
 
     override fun onDestroy() {
         super.onDestroy()
+        cameraSound.release()
+        disregardSound.release()
         refreshSound.release()
         cameraExecutor.shutdown()
         speechRecognitionHelper.destroy()
