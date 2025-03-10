@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library
 
 import android.Manifest
+import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -10,6 +11,7 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -41,6 +43,9 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import com.yalantis.ucrop.UCrop
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -225,6 +230,42 @@ class ReciteFragment : Fragment() {
         }
     }
 
+    private fun startCropActivity(uri: Uri) {
+        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "croppedImage.jpg"))
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(100)
+        }
+        val intent = UCrop.of(uri, destinationUri)
+            .withOptions(options)
+            .withAspectRatio(1f, 1f)
+            .getIntent(requireContext())
+        cropActivityResultLauncher.launch(intent)
+    }
+
+    private val cropActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val resultUri = UCrop.getOutput(result.data!!)
+            resultUri?.let {
+                val bitmap = BitmapFactory.decodeStream(requireContext().contentResolver.openInputStream(it))
+                capturedBitmap = bitmap
+                imageView.setImageBitmap(capturedBitmap)
+                imageView.visibility = View.VISIBLE
+                previewView.visibility = View.GONE
+
+                // Hide all buttons except close button
+                captureButton.visibility = View.GONE
+                switchButton.visibility = View.GONE
+                showCloseButton()
+
+                performOCROnCapturedImage()
+            }
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val cropError = UCrop.getError(result.data!!)
+            Toast.makeText(context, "Crop error: ${cropError?.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun takePhoto() {
         val imageCapture = imageCapture ?: return
         imageCapture.takePicture(
@@ -235,28 +276,8 @@ class ReciteFragment : Fragment() {
                         postRotate(image.imageInfo.rotationDegrees.toFloat())
                     }
                     val bitmap = image.toBitmap()
-                    capturedBitmap = Bitmap.createBitmap(
-                        bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-                    )
-                    imageView.post {
-                        imageView.setImageBitmap(capturedBitmap)
-                        imageView.visibility = View.VISIBLE
-                        previewView.visibility = View.GONE
-
-                        // Hide all buttons except close button
-                        captureButton.visibility = View.GONE
-                        switchButton.visibility = View.GONE
-                        showCloseButton()
-
-                        performOCROnCapturedImage()
-
-                        // Set up the click listener for the close button
-                        closeButton.setOnClickListener {
-                            resetCamera()
-                            hideCloseButton()
-                            showRecitationButtons() // Show all buttons for recitation mode
-                        }
-                    }
+                    val uri = saveBitmapToCache(bitmap)
+                    startCropActivity(uri)
                     image.close()
                 }
 
@@ -265,6 +286,16 @@ class ReciteFragment : Fragment() {
                 }
             }
         )
+    }
+
+
+    private fun saveBitmapToCache(bitmap: Bitmap): Uri {
+        val file = File(requireContext().cacheDir, "capturedImage.jpg")
+        val outputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        outputStream.flush()
+        outputStream.close()
+        return Uri.fromFile(file)
     }
 
     // Add this function to show all buttons for recitation mode
@@ -316,6 +347,8 @@ class ReciteFragment : Fragment() {
                 Toast.makeText(context, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
+
+
 
     private fun drawTextBoundingBoxes(visionText: Text) {
         val bitmap = capturedBitmap ?: return // Return if capturedBitmap is null
