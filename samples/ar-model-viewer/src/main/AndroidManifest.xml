@@ -76,28 +76,18 @@
             android:configChanges="orientation|screenSize"
             android:exported="true"
             android:screenOrientation="locked">
-<!--             <intent-filter>
-                    <action android:name="android.intent.action.MAIN" />
-                    <category android:name="android.intent.category.LAUNCHER" />
-                </intent-filter>-->
         </activity>
 
         <!--component: SpeechRecognition-->
         <activity
             android:name=".library.components.SpeechRecognitionActivity"
             android:configChanges="orientation|screenSize">
-            <!--android:exported="true">-->
-            <!--<intent-filter>-->
-            <!--    <action android:name="android.intent.action.MAIN" />-->
-            <!--    <category android:name="android.intent.ca tegory.LAUNCHER" />-->
-            <!--</intent-filter>-->
         </activity>
 
         <!--component: SpeechRecognition (2)-->
         <activity
             android:name=".library.components.CameraSpeechActivity"
             android:exported="true">
-
         </activity>
 
         <!--Library Activity-->
@@ -105,10 +95,7 @@
             android:name=".library.screens.LibraryActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true">
-<!--            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>-->
+
         </activity>
 
         <!--Practice Activity-->
@@ -116,10 +103,6 @@
             android:name=".library.screens.PracticeActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true">
-<!--            <intent-filter>-->
-<!--                <action android:name="android.intent.action.MAIN" />-->
-<!--                <category android:name="android.intent.category.LAUNCHER" />-->
-<!--            </intent-filter>-->
         </activity>
 
 
@@ -132,9 +115,9 @@
             android:launchMode="singleTask"
             android:noHistory="true"
             tools:replace="android:configChanges, android:theme"
-            tools:targetApi="tiramisu"
-        />
+            tools:targetApi="tiramisu">
 
+        </activity>
 
     </application>
 </manifest>
