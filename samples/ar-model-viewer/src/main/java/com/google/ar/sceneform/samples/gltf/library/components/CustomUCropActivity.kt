@@ -1,4 +1,4 @@
-package com.google.ar.sceneform.samples.gltf.library.screens
+package com.google.ar.sceneform.samples.gltf.library.components
 
 import android.app.Activity
 import android.content.Intent

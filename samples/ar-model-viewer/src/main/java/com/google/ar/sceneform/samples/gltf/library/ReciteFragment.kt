@@ -38,7 +38,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
-import com.google.ar.sceneform.samples.gltf.library.screens.CustomUCropActivity
+import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text

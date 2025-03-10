@@ -46,6 +46,7 @@ class CameraSpeechActivity : AppCompatActivity() {
 
     private fun setupCamera() {
         cameraManager = CameraManager(this)
+        startCamera()
     }
 
     private fun setupListeners() {
