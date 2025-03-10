@@ -20,6 +20,8 @@ class SpeechRecognitionHelper(private val context: Context) {
     private val _spokenText = MutableStateFlow<String>("")
     val spokenText: StateFlow<String> = _spokenText
 
+    var onResultsListener: ((String) -> Unit)? = null
+
     private var referenceText: String = ""
     private val mispronunciations = mutableListOf<String>()
     private val skippedWords = mutableListOf<String>()
@@ -35,6 +37,7 @@ class SpeechRecognitionHelper(private val context: Context) {
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 matches?.get(0)?.let { result ->
                     _spokenText.value = result
+                    onResultsListener?.invoke(result)
                     compareWithReferenceText(result)
                 }
             }
