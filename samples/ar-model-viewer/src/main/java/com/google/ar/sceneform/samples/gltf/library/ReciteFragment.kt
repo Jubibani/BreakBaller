@@ -38,6 +38,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
+import com.google.ar.sceneform.samples.gltf.library.screens.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -230,16 +231,44 @@ class ReciteFragment : Fragment() {
         }
     }
 
+    private fun takePhoto() {
+        val imageCapture = imageCapture ?: return
+        imageCapture.takePicture(
+            ContextCompat.getMainExecutor(requireContext()),
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(image: ImageProxy) {
+                    val bitmap = image.toBitmap()
+                    val rotatedBitmap = rotateBitmapIfRequired(bitmap)
+                    val uri = saveBitmapToCache(rotatedBitmap)
+                    startCropActivity(uri)
+                    image.close()
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Toast.makeText(context, "Photo capture failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        )
+    }
+
     private fun startCropActivity(uri: Uri) {
         val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "croppedImage.jpg"))
         val options = UCrop.Options().apply {
             setCompressionFormat(Bitmap.CompressFormat.JPEG)
             setCompressionQuality(100)
+            setFreeStyleCropEnabled(true) // Enable free style cropping
+
+            // Set the colors
+            setToolbarColor(Color.parseColor("#451f7a")) // Dark Purple
+            setStatusBarColor(Color.parseColor("#451f7a")) // Dark Purple
+            setActiveControlsWidgetColor(Color.parseColor("#edb705")) // Gold
+            setToolbarWidgetColor(Color.parseColor("#FFFFFF")) // White
+            setRootViewBackgroundColor(Color.parseColor("#070308")) // Dark Grey
         }
         val intent = UCrop.of(uri, destinationUri)
             .withOptions(options)
-            .withAspectRatio(1f, 1f)
             .getIntent(requireContext())
+            .setClass(requireContext(), CustomUCropActivity::class.java)
         cropActivityResultLauncher.launch(intent)
     }
 
@@ -266,27 +295,13 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    private fun takePhoto() {
-        val imageCapture = imageCapture ?: return
-        imageCapture.takePicture(
-            ContextCompat.getMainExecutor(requireContext()),
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    val matrix = Matrix().apply {
-                        postRotate(image.imageInfo.rotationDegrees.toFloat())
-                    }
-                    val bitmap = image.toBitmap()
-                    val uri = saveBitmapToCache(bitmap)
-                    startCropActivity(uri)
-                    image.close()
-                }
-
-                override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(context, "Photo capture failed", Toast.LENGTH_SHORT).show()
-                }
-            }
-        )
+    private fun rotateBitmapIfRequired(bitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply {
+            postRotate(90f) // Always rotate by 90 degrees
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
+
 
 
     private fun saveBitmapToCache(bitmap: Bitmap): Uri {
@@ -314,6 +329,7 @@ class ReciteFragment : Fragment() {
         }
     }
 
+
     private fun stopReciting() {
         speechRecognitionHelper.stopListening()
         val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
@@ -336,11 +352,12 @@ class ReciteFragment : Fragment() {
 
     private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
-        val image = InputImage.fromBitmap(bitmap, 0)
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true) // Create a mutable copy
+        val image = InputImage.fromBitmap(mutableBitmap, 0)
         textRecognizer.process(image)
             .addOnSuccessListener { visionText ->
                 recognizedText = visionText
-                drawTextBoundingBoxes(visionText)
+                drawTextBoundingBoxes(mutableBitmap, visionText)
                 startReciting() // Start reciting after OCR is complete
             }
             .addOnFailureListener { e ->
@@ -348,10 +365,7 @@ class ReciteFragment : Fragment() {
             }
     }
 
-
-
-    private fun drawTextBoundingBoxes(visionText: Text) {
-        val bitmap = capturedBitmap ?: return // Return if capturedBitmap is null
+    private fun drawTextBoundingBoxes(bitmap: Bitmap, visionText: Text) {
         val canvas = Canvas(bitmap)
         val paint = Paint().apply {
             color = Color.RED
