@@ -1,6 +1,7 @@
 // ReciteFragment.kt
 package com.google.ar.sceneform.samples.gltf.library
 
+import SpeechRecognitionHelper
 import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.Intent
@@ -30,12 +31,12 @@ import androidx.camera.core.FocusMeteringAction
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.helpers.CameraHelper
-import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
 import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
@@ -67,15 +68,27 @@ class ReciteFragment : Fragment() {
     //switch button
     private lateinit var switchButton: SwitchMaterial
     //speech recognition
-    private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
+    private val speechRecognitionHelper: SpeechRecognitionHelper by lazy {
+        SpeechRecognitionHelper(requireContext())
+    }
+
     private lateinit var startRecitingButton: FloatingActionButton
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        if (permissions.all { it.value }) {
-            startCamera()
+        if (permissions[Manifest.permission.CAMERA] == true && permissions[Manifest.permission.RECORD_AUDIO] == true) {
+            startCamera() // Start camera if both permissions are granted
         } else {
             Toast.makeText(context, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+
+    // Call this function where you need to request permissions
+    private fun requestPermissions() {
+        requestPermissionLauncher.launch(arrayOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        ))
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -93,7 +106,7 @@ class ReciteFragment : Fragment() {
             recognizedTextView = view.findViewById(R.id.recognizedTextView) ?: throw NullPointerException("RecognizedTextView not found")
 
             textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
+
             cameraHelper = CameraHelper(requireContext())
 
             // Initialize sounds
@@ -107,6 +120,7 @@ class ReciteFragment : Fragment() {
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
+                speechRecognitionHelper.stopListening() // Stop listening when close button is pressed
             }
 
             //switch
@@ -115,23 +129,23 @@ class ReciteFragment : Fragment() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                requestPermissionLauncher.launch(REQUIRED_PERMISSIONS)
+                requestPermissions()
             }
 
             // take camera and perform text recognition and speech recognition
             captureButton.setOnClickListener {
                 cameraSound.start() // Play camera sound
                 takePhoto()
-            } ?: throw NullPointerException("Start reciting button not found")
+            } ?: throw NullPointerException("Start reciting button not fo`und")
 
             setupTouchListeners()
 
-/*            // Observe the recognized text and update the UI
+            // Observe the recognized text and update the UI
             speechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
-                recognizedTextView.text = recognizedText ?: "" //  Update UI with recognized speech
-                textOverlay.recognizedText = recognizedText ?: "" //  Ensure textOverlay works with String
-                textOverlay.invalidate()
-            })*/
+                Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
+                recognizedTextView.text = recognizedText ?: "" // Display recognized speech
+            })
+
 
         } catch (e: NullPointerException) {
             Log.e("ReciteFragment", "Error initializing views: ${e.message}")
@@ -382,6 +396,16 @@ class ReciteFragment : Fragment() {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
+    override fun onPause() {
+        super.onPause()
+        speechRecognitionHelper.stopListening() // Stop listening when fragment is paused
+    }
+
+    override fun onStop() {
+        super.onStop()
+        speechRecognitionHelper.stopListening() // Stop listening when fragment is stopped
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         cameraSound.release()
@@ -392,6 +416,6 @@ class ReciteFragment : Fragment() {
     }
 
     companion object {
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     }
 }
