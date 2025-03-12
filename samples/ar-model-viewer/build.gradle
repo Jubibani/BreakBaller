@@ -120,6 +120,9 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
 
+    //For Cropping
+    implementation 'com.github.yalantis:ucrop:2.2.8'
+
     //database
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"

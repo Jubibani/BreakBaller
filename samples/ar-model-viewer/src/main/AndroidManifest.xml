@@ -84,6 +84,13 @@
 
         </activity>
 
+        <!--Ucrop Activity-->
+        <activity
+            android:name="com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
+
+
+
         <!--component: SpeechRecognition-->
         <activity
             android:name=".library.components.SpeechRecognitionActivity"

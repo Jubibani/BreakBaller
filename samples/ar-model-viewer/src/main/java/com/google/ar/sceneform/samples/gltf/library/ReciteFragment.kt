@@ -1,6 +1,7 @@
 package com.google.ar.sceneform.samples.gltf.library
 
 import android.Manifest
+import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -10,6 +11,7 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -21,37 +23,30 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.FocusMeteringAction
-import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
-import androidx.camera.core.Preview
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
+import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
+import com.google.ar.sceneform.samples.gltf.library.helpers.CameraHelper
 import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
 import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
+import com.yalantis.ucrop.UCrop
+import java.io.File
+import java.io.FileOutputStream
 
 class ReciteFragment : Fragment() {
-    private lateinit var cameraExecutor: ExecutorService
+    private lateinit var cameraHelper: CameraHelper
     private lateinit var previewView: PreviewView
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
-    private var camera: androidx.camera.core.Camera? = null
-    private var imageCapture: ImageCapture? = null
-    private var imageAnalyzer: ImageAnalysis? = null
     private var capturedBitmap: Bitmap? = null
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
@@ -82,6 +77,7 @@ class ReciteFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_recite, container, false)
     }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -91,9 +87,9 @@ class ReciteFragment : Fragment() {
             imageView = view.findViewById(R.id.imageView) ?: throw NullPointerException("ImageView not found")
             textOverlay = view.findViewById(R.id.textOverlay) ?: throw NullPointerException("TextOverlay not found")
 
-            cameraExecutor = Executors.newSingleThreadExecutor()
             textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
+            cameraHelper = CameraHelper(requireContext())
 
             // Initialize sounds
             cameraSound = MediaPlayer.create(requireContext(), R.raw.camera)
@@ -103,7 +99,6 @@ class ReciteFragment : Fragment() {
             closeButton = view.findViewById(R.id.closeButton)
             refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
             closeButton.setOnClickListener {
-
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
@@ -122,7 +117,6 @@ class ReciteFragment : Fragment() {
             captureButton.setOnClickListener {
                 cameraSound.start() // Play camera sound
                 takePhoto()
-                startReciting()
             } ?: throw NullPointerException("Start reciting button not found")
 
             setupTouchListeners()
@@ -158,35 +152,13 @@ class ReciteFragment : Fragment() {
         val factory = previewView.meteringPointFactory
         val point = factory.createPoint(x, y)
         val action = FocusMeteringAction.Builder(point).build()
-        camera?.cameraControl?.startFocusAndMetering(action)
+        cameraHelper.camera?.cameraControl?.startFocusAndMetering(action)
     }
 
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-        cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-            val preview = Preview.Builder().build().also {
-                it.setSurfaceProvider(previewView.surfaceProvider)
-            }
-            imageCapture = ImageCapture.Builder().build()
-            imageAnalyzer = ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-                .also {
-                    it.setAnalyzer(cameraExecutor, ImageAnalysis.Analyzer { imageProxy ->
-                        processImageProxy(imageProxy)
-                    })
-                }
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-            try {
-                cameraProvider.unbindAll()
-                camera = cameraProvider.bindToLifecycle(
-                    viewLifecycleOwner, cameraSelector, preview, imageCapture, imageAnalyzer
-                )
-            } catch (exc: Exception) {
-                Toast.makeText(context, "Failed to start camera", Toast.LENGTH_SHORT).show()
-            }
-        }, ContextCompat.getMainExecutor(requireContext()))
+        cameraHelper.startCamera(viewLifecycleOwner, previewView) { recognizedText ->
+            Log.d("TextRecognition", "Detected text: $recognizedText")
+        }
     }
 
     private fun resetCamera() {
@@ -204,67 +176,72 @@ class ReciteFragment : Fragment() {
         }, 300) // 500 milliseconds delay
     }
 
-    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
-    private fun processImageProxy(imageProxy: ImageProxy) {
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
-            textRecognizer.process(image)
-                .addOnSuccessListener { visionText ->
-                    // Process the detected text in real-time
-                    Log.d("TextRecognition", "Detected text: ${visionText.text}")
-                }
-                .addOnFailureListener { e ->
-                    Log.e("TextRecognition", "Error recognizing text", e)
-                }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
+    private fun takePhoto() {
+        cameraHelper.takePhoto { bitmap ->
+            val rotatedBitmap = rotateBitmapIfRequired(bitmap)
+            val uri = saveBitmapToCache(rotatedBitmap)
+            startCropActivity(uri)
         }
     }
 
-    private fun takePhoto() {
-        val imageCapture = imageCapture ?: return
-        imageCapture.takePicture(
-            ContextCompat.getMainExecutor(requireContext()),
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(image: ImageProxy) {
-                    val matrix = Matrix().apply {
-                        postRotate(image.imageInfo.rotationDegrees.toFloat())
-                    }
-                    val bitmap = image.toBitmap()
-                    capturedBitmap = Bitmap.createBitmap(
-                        bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-                    )
-                    imageView.post {
-                        imageView.setImageBitmap(capturedBitmap)
-                        imageView.visibility = View.VISIBLE
-                        previewView.visibility = View.GONE
+    private fun startCropActivity(uri: Uri) {
+        val destinationUri = Uri.fromFile(File(requireContext().cacheDir, "croppedImage.jpg"))
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(100)
+            setFreeStyleCropEnabled(true) // Enable free style cropping
 
-                        // Hide all buttons except close button
-                        captureButton.visibility = View.GONE
-                        switchButton.visibility = View.GONE
-                        showCloseButton()
+            // Set the colors
+            setToolbarColor(Color.parseColor("#451f7a")) // Dark Purple
+            setStatusBarColor(Color.parseColor("#451f7a")) // Dark Purple
+            setActiveControlsWidgetColor(Color.parseColor("#edb705")) // Gold
+            setToolbarWidgetColor(Color.parseColor("#FFFFFF")) // White
+            setRootViewBackgroundColor(Color.parseColor("#070308")) // Dark Grey
+        }
+        val intent = UCrop.of(uri, destinationUri)
+            .withOptions(options)
+            .getIntent(requireContext())
+            .setClass(requireContext(), CustomUCropActivity::class.java)
+        cropActivityResultLauncher.launch(intent)
+    }
 
-                        performOCROnCapturedImage()
+    private val cropActivityResultLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val resultUri = UCrop.getOutput(result.data!!)
+            resultUri?.let {
+                val bitmap = BitmapFactory.decodeStream(requireContext().contentResolver.openInputStream(it))
+                capturedBitmap = bitmap
+                imageView.setImageBitmap(capturedBitmap)
+                imageView.visibility = View.VISIBLE
+                previewView.visibility = View.GONE
 
-                        // Set up the click listener for the close button
-                        closeButton.setOnClickListener {
-                            resetCamera()
-                            hideCloseButton()
-                            showRecitationButtons() // Show all buttons for recitation mode
-                        }
-                    }
-                    image.close()
-                }
+                // Hide all buttons except close button
+                captureButton.visibility = View.GONE
+                switchButton.visibility = View.GONE
+                showCloseButton()
 
-                override fun onError(exception: ImageCaptureException) {
-                    Toast.makeText(context, "Photo capture failed", Toast.LENGTH_SHORT).show()
-                }
+                performOCROnCapturedImage()
             }
-        )
+        } else if (result.resultCode == UCrop.RESULT_ERROR) {
+            val cropError = UCrop.getError(result.data!!)
+            Toast.makeText(context, "Crop error: ${cropError?.message}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun rotateBitmapIfRequired(bitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply {
+            postRotate(90f) // Always rotate by 90 degrees
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+    }
+
+    private fun saveBitmapToCache(bitmap: Bitmap): Uri {
+        val file = File(requireContext().cacheDir, "capturedImage.jpg")
+        val outputStream = FileOutputStream(file)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+        outputStream.flush()
+        outputStream.close()
+        return Uri.fromFile(file)
     }
 
     // Add this function to show all buttons for recitation mode
@@ -305,20 +282,20 @@ class ReciteFragment : Fragment() {
 
     private fun performOCROnCapturedImage() {
         val bitmap = capturedBitmap ?: return
-        val image = InputImage.fromBitmap(bitmap, 0)
+        val mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true)
+        val image = InputImage.fromBitmap(mutableBitmap, 0)
         textRecognizer.process(image)
             .addOnSuccessListener { visionText ->
                 recognizedText = visionText
-                drawTextBoundingBoxes(visionText)
-                startReciting() // Start reciting after OCR is complete
+                drawTextBoundingBoxes(mutableBitmap, visionText)
+                startReciting() // Start speech recognition after OCR is complete
             }
             .addOnFailureListener { e ->
                 Toast.makeText(context, "Text recognition failed: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
 
-    private fun drawTextBoundingBoxes(visionText: Text) {
-        val bitmap = capturedBitmap ?: return // Return if capturedBitmap is null
+    private fun drawTextBoundingBoxes(bitmap: Bitmap, visionText: Text) {
         val canvas = Canvas(bitmap)
         val paint = Paint().apply {
             color = Color.RED
@@ -366,13 +343,6 @@ class ReciteFragment : Fragment() {
         imageView.setImageBitmap(highlightedBitmap)
     }
 
-    private fun ImageProxy.toBitmap(): Bitmap {
-        val buffer = planes[0].buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-    }
-
     private fun allPermissionsGranted() = REQUIRED_PERMISSIONS.all {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
@@ -382,7 +352,7 @@ class ReciteFragment : Fragment() {
         cameraSound.release()
         disregardSound.release()
         refreshSound.release()
-        cameraExecutor.shutdown()
+        cameraHelper.shutdown()
         speechRecognitionHelper.destroy()
     }
 

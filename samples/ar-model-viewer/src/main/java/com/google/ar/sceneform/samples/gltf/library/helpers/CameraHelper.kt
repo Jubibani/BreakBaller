@@ -1,4 +1,4 @@
-package com.google.ar.sceneform.samples.gltf.library.components
+package com.google.ar.sceneform.samples.gltf.library.helpers
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -14,12 +14,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
+import com.google.ar.sceneform.samples.gltf.library.components.TextRecognitionAnalyzer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class CameraManager(private val context: Context) {
+class CameraHelper(private val context: Context) {
     private var imageCapture: ImageCapture? = null
-    private var camera: Camera? = null
+    var camera: Camera? = null
     private lateinit var cameraExecutor: ExecutorService
 
     init {
@@ -96,7 +97,7 @@ class CameraManager(private val context: Context) {
     }
 
     companion object {
-        private const val TAG = "CameraManager"
+        private const val TAG = "CameraHelper"
     }
 }
 
