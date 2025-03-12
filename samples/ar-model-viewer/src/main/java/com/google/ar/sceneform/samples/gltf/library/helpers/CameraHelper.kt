@@ -15,6 +15,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import com.google.ar.sceneform.samples.gltf.library.components.TextRecognitionAnalyzer
+import com.google.mlkit.vision.text.Text
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -27,7 +28,7 @@ class CameraHelper(private val context: Context) {
         cameraExecutor = Executors.newSingleThreadExecutor()
     }
 
-    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView, onTextRecognized: (String) -> Unit) {
+    fun startCamera(lifecycleOwner: LifecycleOwner, previewView: PreviewView, onTextRecognized: (Text) -> Unit) {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
 
         cameraProviderFuture.addListener({
@@ -68,7 +69,7 @@ class CameraHelper(private val context: Context) {
                 camera?.cameraControl?.enableTorch(false)
 
             } catch (exc: Exception) {
-                Log.e(TAG, "Use case binding failed", exc)
+                Log.e("CameraHelper", "Use case binding failed", exc)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -85,26 +86,22 @@ class CameraHelper(private val context: Context) {
                     image.close()
                 }
 
-                override fun onError(exc: ImageCaptureException) {
-                    Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e("CameraHelper", "Photo capture failed: ${exception.message}", exception)
                 }
             }
         )
     }
 
+    private fun ImageProxy.toBitmap(): Bitmap {
+        val buffer = planes[0].buffer
+        buffer.rewind()
+        val bytes = ByteArray(buffer.capacity())
+        buffer.get(bytes)
+        return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
     fun shutdown() {
         cameraExecutor.shutdown()
     }
-
-    companion object {
-        private const val TAG = "CameraHelper"
-    }
-}
-
-private fun ImageProxy.toBitmap(): Bitmap {
-    val buffer = planes[0].buffer
-    buffer.rewind()
-    val bytes = ByteArray(buffer.capacity())
-    buffer.get(bytes)
-    return android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 }

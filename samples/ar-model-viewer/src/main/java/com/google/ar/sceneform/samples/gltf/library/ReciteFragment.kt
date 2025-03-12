@@ -1,3 +1,4 @@
+// ReciteFragment.kt
 package com.google.ar.sceneform.samples.gltf.library
 
 import android.Manifest
@@ -10,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.ExifInterface
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -21,6 +23,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.FocusMeteringAction
@@ -47,6 +50,7 @@ class ReciteFragment : Fragment() {
     private lateinit var previewView: PreviewView
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
+    private lateinit var recognizedTextView: TextView
     private var capturedBitmap: Bitmap? = null
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
@@ -86,6 +90,7 @@ class ReciteFragment : Fragment() {
             captureButton = view.findViewById(R.id.captureButton) ?: throw NullPointerException("Capture button not found")
             imageView = view.findViewById(R.id.imageView) ?: throw NullPointerException("ImageView not found")
             textOverlay = view.findViewById(R.id.textOverlay) ?: throw NullPointerException("TextOverlay not found")
+            recognizedTextView = view.findViewById(R.id.recognizedTextView) ?: throw NullPointerException("RecognizedTextView not found")
 
             textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
             speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
@@ -120,6 +125,13 @@ class ReciteFragment : Fragment() {
             } ?: throw NullPointerException("Start reciting button not found")
 
             setupTouchListeners()
+
+/*            // Observe the recognized text and update the UI
+            speechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
+                recognizedTextView.text = recognizedText ?: "" //  Update UI with recognized speech
+                textOverlay.recognizedText = recognizedText ?: "" //  Ensure textOverlay works with String
+                textOverlay.invalidate()
+            })*/
 
         } catch (e: NullPointerException) {
             Log.e("ReciteFragment", "Error initializing views: ${e.message}")
@@ -178,10 +190,17 @@ class ReciteFragment : Fragment() {
 
     private fun takePhoto() {
         cameraHelper.takePhoto { bitmap ->
-            val rotatedBitmap = rotateBitmapIfRequired(bitmap)
+            val rotatedBitmap = rotateBitmapByFixedAngle(bitmap)
             val uri = saveBitmapToCache(rotatedBitmap)
             startCropActivity(uri)
         }
+    }
+
+    private fun rotateBitmapByFixedAngle(bitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply {
+            postRotate(90f) // Always rotate by 90 degrees
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun startCropActivity(uri: Uri) {
@@ -209,8 +228,19 @@ class ReciteFragment : Fragment() {
         if (result.resultCode == RESULT_OK) {
             val resultUri = UCrop.getOutput(result.data!!)
             resultUri?.let {
-                val bitmap = BitmapFactory.decodeStream(requireContext().contentResolver.openInputStream(it))
-                capturedBitmap = bitmap
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                // Handle image orientation
+                val rotatedBitmap = rotateBitmapByExifData(it, bitmap)
+
+                // Recycle previous bitmap if exists
+                capturedBitmap?.recycle()
+                capturedBitmap = rotatedBitmap
+
+                // Adjust ImageView scaleType
+                imageView.scaleType = ImageView.ScaleType.FIT_CENTER
                 imageView.setImageBitmap(capturedBitmap)
                 imageView.visibility = View.VISIBLE
                 previewView.visibility = View.GONE
@@ -228,9 +258,14 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    private fun rotateBitmapIfRequired(bitmap: Bitmap): Bitmap {
-        val matrix = Matrix().apply {
-            postRotate(90f) // Always rotate by 90 degrees
+    private fun rotateBitmapByExifData(uri: Uri, bitmap: Bitmap): Bitmap {
+        val exifInterface = ExifInterface(requireContext().contentResolver.openInputStream(uri)!!)
+        val orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
         }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }

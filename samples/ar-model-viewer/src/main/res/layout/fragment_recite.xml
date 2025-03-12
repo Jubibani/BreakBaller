@@ -16,6 +16,16 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
+    <!-- fragment_recite.xml -->
+    <TextView
+        android:id="@+id/recognizedTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Recognized Text"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp"
+        android:layout_gravity="center_horizontal"/>
+
     <com.google.ar.sceneform.samples.gltf.library.TextOverlay
         android:id="@+id/textOverlay"
         android:layout_width="match_parent"

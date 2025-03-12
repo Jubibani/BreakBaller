@@ -1,3 +1,4 @@
+// SpeechRecognitionHelper.kt
 package com.google.ar.sceneform.samples.gltf.library.helpers
 
 import android.content.Context
@@ -6,26 +7,16 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import java.util.Locale
 
 class SpeechRecognitionHelper(private val context: Context) {
-
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
-    private val recognitionIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-        putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-    }
-
-    private val _spokenText = MutableStateFlow<String>("")
-    val spokenText: StateFlow<String> = _spokenText
-
-    var onResultsListener: ((String) -> Unit)? = null
-
-    private var referenceText: String = ""
-    private val mispronunciations = mutableListOf<String>()
-    private val skippedWords = mutableListOf<String>()
-    private val stutteredWords = mutableListOf<String>()
+    private val _spokenText = MutableLiveData<String>()
+    val spokenText: LiveData<String> get() = _spokenText
+    private var onResultsListener: ((String) -> Unit)? = null
+    private var referenceText: String? = null
 
     init {
         setupRecognitionListener()
@@ -50,7 +41,6 @@ class SpeechRecognitionHelper(private val context: Context) {
             }
 
             // Implement other RecognitionListener methods as needed
-
             override fun onReadyForSpeech(params: Bundle?) {}
             override fun onBeginningOfSpeech() {}
             override fun onRmsChanged(rmsdB: Float) {}
@@ -62,6 +52,10 @@ class SpeechRecognitionHelper(private val context: Context) {
     }
 
     fun startListening() {
+        val recognitionIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+        }
         speechRecognizer.startListening(recognitionIntent)
     }
 
@@ -70,52 +64,23 @@ class SpeechRecognitionHelper(private val context: Context) {
     }
 
     fun setReferenceText(text: String) {
-        referenceText = text.toLowerCase()
+        referenceText = text.lowercase(Locale.ROOT)
     }
 
-    private fun compareWithReferenceText(spokenText: String) {
-        val spokenWords = spokenText.toLowerCase().split(" ")
-        val referenceWords = referenceText.split(" ")
-
-        var spokenIndex = 0
-        var referenceIndex = 0
-
-        while (spokenIndex < spokenWords.size && referenceIndex < referenceWords.size) {
-            when {
-                spokenWords[spokenIndex] == referenceWords[referenceIndex] -> {
-                    spokenIndex++
-                    referenceIndex++
-                }
-                spokenWords[spokenIndex].startsWith(referenceWords[referenceIndex]) -> {
-                    stutteredWords.add(referenceWords[referenceIndex])
-                    spokenIndex++
-                }
-                else -> {
-                    mispronunciations.add(referenceWords[referenceIndex])
-                    referenceIndex++
-                }
-            }
-        }
-
-        // Check for skipped words
-        while (referenceIndex < referenceWords.size) {
-            skippedWords.add(referenceWords[referenceIndex])
-            referenceIndex++
-        }
-    }
-
-    fun getResults(): Triple<List<String>, List<String>, List<String>> {
-        return Triple(mispronunciations, skippedWords, stutteredWords)
-    }
-
-    fun reset() {
-        mispronunciations.clear()
-        skippedWords.clear()
-        stutteredWords.clear()
-        _spokenText.value = ""
+    fun setOnResultsListener(listener: (String) -> Unit) {
+        onResultsListener = listener
     }
 
     fun destroy() {
         speechRecognizer.destroy()
+    }
+
+    private fun compareWithReferenceText(result: String) {
+        // Implement comparison logic here
+    }
+
+    fun getResults(): Triple<List<String>, List<String>, List<String>> {
+        // Implement logic to get mispronunciations, skippedWords, and stutteredWords
+        return Triple(emptyList(), emptyList(), emptyList())
     }
 }
