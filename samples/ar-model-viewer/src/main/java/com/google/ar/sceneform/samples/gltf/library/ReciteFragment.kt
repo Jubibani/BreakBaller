@@ -4,7 +4,6 @@ package com.google.ar.sceneform.samples.gltf.library
 import SpeechRecognitionHelper
 import android.Manifest
 import android.app.Activity.RESULT_OK
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -32,12 +31,12 @@ import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
+import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.helpers.CameraHelper
-import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -67,10 +66,13 @@ class ReciteFragment : Fragment() {
 
     //switch button
     private lateinit var switchButton: SwitchMaterial
+
+    //sound waves
+    private lateinit var soundwaveAnimationView: LottieAnimationView
+    private var previousRecognizedText: String? = null
+
     //speech recognition
-    private val speechRecognitionHelper: SpeechRecognitionHelper by lazy {
-        SpeechRecognitionHelper(requireContext())
-    }
+    private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
 
     private lateinit var startRecitingButton: FloatingActionButton
 
@@ -81,7 +83,6 @@ class ReciteFragment : Fragment() {
             Toast.makeText(context, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     // Call this function where you need to request permissions
     private fun requestPermissions() {
@@ -97,6 +98,7 @@ class ReciteFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        soundwaveAnimationView = view.findViewById(R.id.soundwaveAnimationView)
 
         try {
             previewView = view.findViewById(R.id.previewView) ?: throw NullPointerException("PreviewView not found")
@@ -136,16 +138,18 @@ class ReciteFragment : Fragment() {
             captureButton.setOnClickListener {
                 cameraSound.start() // Play camera sound
                 takePhoto()
-            } ?: throw NullPointerException("Start reciting button not fo`und")
+            } ?: throw NullPointerException("Start reciting button not found")
 
             setupTouchListeners()
+
+            // Initialize SpeechRecognitionHelper with the soundwaveAnimationView
+            speechRecognitionHelper = SpeechRecognitionHelper(requireContext(), soundwaveAnimationView)
 
             // Observe the recognized text and update the UI
             speechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
                 Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
                 recognizedTextView.text = recognizedText ?: "" // Display recognized speech
             })
-
 
         } catch (e: NullPointerException) {
             Log.e("ReciteFragment", "Error initializing views: ${e.message}")
@@ -155,6 +159,7 @@ class ReciteFragment : Fragment() {
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
+
 
     private fun setupTouchListeners() {
         previewView.setOnTouchListener { _, event ->
@@ -309,7 +314,7 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    private fun stopReciting() {
+/*    private fun stopReciting() {
         speechRecognitionHelper.stopListening()
         val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
         // Start PracticeActivity with results
@@ -319,7 +324,7 @@ class ReciteFragment : Fragment() {
             putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
         }
         startActivity(intent)
-    }
+    }*/
 
     private fun showCloseButton() {
         closeButton.visibility = View.VISIBLE
@@ -413,6 +418,7 @@ class ReciteFragment : Fragment() {
         refreshSound.release()
         cameraHelper.shutdown()
         speechRecognitionHelper.destroy()
+        soundwaveAnimationView.cancelAnimation()
     }
 
     companion object {

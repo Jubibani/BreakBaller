@@ -9,61 +9,60 @@ import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
+import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.airbnb.lottie.LottieAnimationView
 import java.util.Locale
 
-class SpeechRecognitionHelper(private val context: Context) {
+class SpeechRecognitionHelper(private val context: Context, private val soundwaveAnimationView: LottieAnimationView) {
     private val speechRecognizer: SpeechRecognizer = SpeechRecognizer.createSpeechRecognizer(context)
     private val _spokenText = MutableLiveData<String>()
     val spokenText: LiveData<String> get() = _spokenText
+    private val _isSpeaking = MutableLiveData<Boolean>()
+    val isSpeaking: LiveData<Boolean> get() = _isSpeaking
     private var onResultsListener: ((String) -> Unit)? = null
     private var referenceText: String? = null
     private var isListening = false
     private val handler = Handler(Looper.getMainLooper())
     private var lastListeningTime: Long = 0
+    private var previousRecognizedText: String? = null
 
     init {
         setupRecognitionListener()
     }
 
     private fun setupRecognitionListener() {
-        // [FOR DEBUGGING PURPOSES ONLY]
         speechRecognizer.setRecognitionListener(object : RecognitionListener {
             override fun onReadyForSpeech(params: Bundle?) {
                 Log.d("SpeechRecognition", "Ready for speech")
             }
 
             override fun onBeginningOfSpeech() {
-                Log.d("SpeechRecognition", "Speech beginning")
+                _isSpeaking.value = true
             }
 
-            override fun onRmsChanged(rmsdB: Float) {
-           /*     Log.d("SpeechRecognition", "RMS changed: $rmsdB")*/
-            }
+            override fun onRmsChanged(rmsdB: Float) {}
 
-            override fun onBufferReceived(buffer: ByteArray?) {
-            /*    Log.d("SpeechRecognition", "Buffer received")*/
-            }
+            override fun onBufferReceived(buffer: ByteArray?) {}
 
             override fun onEndOfSpeech() {
                 Log.d("SpeechRecognition", "End of speech")
+                _isSpeaking.value = false
                 if (isListening) {
-                    Log.d("SpeechRecognition", "Restarting listening after pause")
-                    handler.postDelayed({ startListening() }, 500) // Small delay to avoid rapid restarts
+                    handler.postDelayed({ startListening() }, 500)
                 }
             }
 
             override fun onError(error: Int) {
                 Log.e("SpeechRecognition", "Error: $error")
-
+                _isSpeaking.value = false
                 if (isListening) {
                     when (error) {
                         SpeechRecognizer.ERROR_NO_MATCH,
                         SpeechRecognizer.ERROR_SPEECH_TIMEOUT -> {
-                            Log.d("SpeechRecognition", "No speech detected, restarting...")
-                            handler.postDelayed({ startListening() }, 500) // Small delay to avoid rapid restarts
+                            handler.postDelayed({ startListening() }, 500)
                         }
                         else -> {
                             Log.e("SpeechRecognition", "Unhandled error: $error")
@@ -79,6 +78,16 @@ class SpeechRecognitionHelper(private val context: Context) {
                     _spokenText.value = result
                     onResultsListener?.invoke(result)
                     compareWithReferenceText(result)
+
+                    // Control the animation based on the recognized text
+                    if (!result.isNullOrBlank() && result != previousRecognizedText) {
+                        soundwaveAnimationView.playAnimation() // Start animation only when new text is recognized
+                        Log.d("SpeechRecognition", "Playing animation for new text: $result")
+                        previousRecognizedText = result
+                    } else {
+                        soundwaveAnimationView.pauseAnimation() // Pause animation if no valid speech is detected
+                        Log.d("SpeechRecognition", "Pausing animation, no new valid speech detected")
+                    }
                 }
             }
 
@@ -99,8 +108,7 @@ class SpeechRecognitionHelper(private val context: Context) {
     fun startListening() {
         if (allPermissionsGranted()) {
             val currentTime = System.currentTimeMillis()
-            if (currentTime - lastListeningTime < 1000) { // Prevent immediate restart
-                Log.d("SpeechRecognition", "Skipping restart to avoid rapid looping")
+            if (currentTime - lastListeningTime < 1000) {
                 return
             }
             lastListeningTime = currentTime
@@ -110,8 +118,8 @@ class SpeechRecognitionHelper(private val context: Context) {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
             }
-            Log.d("SpeechRecognition", "Starting to listen for speech")
             isListening = true
+            soundwaveAnimationView.visibility = View.VISIBLE // Show animation view
             speechRecognizer.startListening(recognitionIntent)
         } else {
             Log.e("SpeechRecognition", "Permissions not granted")
@@ -119,8 +127,8 @@ class SpeechRecognitionHelper(private val context: Context) {
     }
 
     fun stopListening() {
-        Log.d("SpeechRecognition", "Stopping listening")
         isListening = false
+        soundwaveAnimationView.visibility = View.GONE // Hide animation view
         speechRecognizer.stopListening()
     }
 
@@ -139,11 +147,6 @@ class SpeechRecognitionHelper(private val context: Context) {
 
     private fun compareWithReferenceText(result: String) {
         // Implement comparison logic here
-    }
-
-    fun getResults(): Triple<List<String>, List<String>, List<String>> {
-        // Implement logic to get mispronunciations, skippedWords, and stutteredWords
-        return Triple(emptyList(), emptyList(), emptyList())
     }
 
     private fun allPermissionsGranted(): Boolean {

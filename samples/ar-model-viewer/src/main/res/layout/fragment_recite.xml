@@ -31,6 +31,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <com.airbnb.lottie.LottieAnimationView
+        android:id="@+id/soundwaveAnimationView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        app:lottie_rawRes="@raw/soundwave"
+        app:lottie_autoPlay="false"
+        app:lottie_loop="true"
+        android:visibility="gone" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/captureButton"
         android:layout_width="wrap_content"
