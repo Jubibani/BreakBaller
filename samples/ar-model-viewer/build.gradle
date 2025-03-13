@@ -80,6 +80,8 @@ dependencies {
     implementation "com.gorisse.thomas.sceneform:sceneform:1.23.0"
     implementation 'com.google.ar:core:1.31.0'
     implementation 'androidx.media3:media3-effect:1.4.0'
+    implementation 'androidx.test.espresso:espresso-core:3.6.1'
+    implementation 'androidx.core:core:1.7.0'
     debugApi project(":sceneform")
 
     // New dependencies
@@ -104,6 +106,7 @@ dependencies {
 
     // Speech recognition
     implementation 'com.alphacephei:vosk-android:0.3.32'
+    implementation 'com.airbnb.android:lottie:5.0.3'
 
     // Camera
     implementation "androidx.camera:camera-core:1.1.0-beta01"

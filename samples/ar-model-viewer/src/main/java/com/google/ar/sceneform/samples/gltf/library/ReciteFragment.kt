@@ -1,8 +1,9 @@
+// ReciteFragment.kt
 package com.google.ar.sceneform.samples.gltf.library
 
+import SpeechRecognitionHelper
 import android.Manifest
 import android.app.Activity.RESULT_OK
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +11,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.media.ExifInterface
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Bundle
@@ -21,19 +23,20 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.FocusMeteringAction
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import com.airbnb.lottie.LottieAnimationView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.helpers.CameraHelper
-import com.google.ar.sceneform.samples.gltf.library.helpers.SpeechRecognitionHelper
-import com.google.ar.sceneform.samples.gltf.library.screens.PracticeActivity
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -47,6 +50,7 @@ class ReciteFragment : Fragment() {
     private lateinit var previewView: PreviewView
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
+    private lateinit var recognizedTextView: TextView
     private var capturedBitmap: Bitmap? = null
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
@@ -62,16 +66,30 @@ class ReciteFragment : Fragment() {
 
     //switch button
     private lateinit var switchButton: SwitchMaterial
+
+    //sound waves
+    private lateinit var soundwaveAnimationView: LottieAnimationView
+    private var previousRecognizedText: String? = null
+
     //speech recognition
     private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
+
     private lateinit var startRecitingButton: FloatingActionButton
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
-        if (permissions.all { it.value }) {
-            startCamera()
+        if (permissions[Manifest.permission.CAMERA] == true && permissions[Manifest.permission.RECORD_AUDIO] == true) {
+            startCamera() // Start camera if both permissions are granted
         } else {
             Toast.makeText(context, "Permissions not granted by the user.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    // Call this function where you need to request permissions
+    private fun requestPermissions() {
+        requestPermissionLauncher.launch(arrayOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO
+        ))
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
@@ -80,15 +98,17 @@ class ReciteFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        soundwaveAnimationView = view.findViewById(R.id.soundwaveAnimationView)
 
         try {
             previewView = view.findViewById(R.id.previewView) ?: throw NullPointerException("PreviewView not found")
             captureButton = view.findViewById(R.id.captureButton) ?: throw NullPointerException("Capture button not found")
             imageView = view.findViewById(R.id.imageView) ?: throw NullPointerException("ImageView not found")
             textOverlay = view.findViewById(R.id.textOverlay) ?: throw NullPointerException("TextOverlay not found")
+            recognizedTextView = view.findViewById(R.id.recognizedTextView) ?: throw NullPointerException("RecognizedTextView not found")
 
             textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-            speechRecognitionHelper = SpeechRecognitionHelper(requireContext())
+
             cameraHelper = CameraHelper(requireContext())
 
             // Initialize sounds
@@ -102,6 +122,7 @@ class ReciteFragment : Fragment() {
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
+                speechRecognitionHelper.stopListening() // Stop listening when close button is pressed
             }
 
             //switch
@@ -110,7 +131,7 @@ class ReciteFragment : Fragment() {
             if (allPermissionsGranted()) {
                 startCamera()
             } else {
-                requestPermissionLauncher.launch(REQUIRED_PERMISSIONS)
+                requestPermissions()
             }
 
             // take camera and perform text recognition and speech recognition
@@ -121,6 +142,15 @@ class ReciteFragment : Fragment() {
 
             setupTouchListeners()
 
+            // Initialize SpeechRecognitionHelper with the soundwaveAnimationView
+            speechRecognitionHelper = SpeechRecognitionHelper(requireContext(), soundwaveAnimationView)
+
+            // Observe the recognized text and update the UI
+            speechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
+                Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
+                recognizedTextView.text = recognizedText ?: "" // Display recognized speech
+            })
+
         } catch (e: NullPointerException) {
             Log.e("ReciteFragment", "Error initializing views: ${e.message}")
             Toast.makeText(context, "Error initializing views: ${e.message}", Toast.LENGTH_LONG).show()
@@ -129,6 +159,7 @@ class ReciteFragment : Fragment() {
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
+
 
     private fun setupTouchListeners() {
         previewView.setOnTouchListener { _, event ->
@@ -178,10 +209,17 @@ class ReciteFragment : Fragment() {
 
     private fun takePhoto() {
         cameraHelper.takePhoto { bitmap ->
-            val rotatedBitmap = rotateBitmapIfRequired(bitmap)
+            val rotatedBitmap = rotateBitmapByFixedAngle(bitmap)
             val uri = saveBitmapToCache(rotatedBitmap)
             startCropActivity(uri)
         }
+    }
+
+    private fun rotateBitmapByFixedAngle(bitmap: Bitmap): Bitmap {
+        val matrix = Matrix().apply {
+            postRotate(90f) // Always rotate by 90 degrees
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun startCropActivity(uri: Uri) {
@@ -209,8 +247,19 @@ class ReciteFragment : Fragment() {
         if (result.resultCode == RESULT_OK) {
             val resultUri = UCrop.getOutput(result.data!!)
             resultUri?.let {
-                val bitmap = BitmapFactory.decodeStream(requireContext().contentResolver.openInputStream(it))
-                capturedBitmap = bitmap
+                val inputStream = requireContext().contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                inputStream?.close()
+
+                // Handle image orientation
+                val rotatedBitmap = rotateBitmapByExifData(it, bitmap)
+
+                // Recycle previous bitmap if exists
+                capturedBitmap?.recycle()
+                capturedBitmap = rotatedBitmap
+
+                // Adjust ImageView scaleType
+                imageView.scaleType = ImageView.ScaleType.FIT_CENTER
                 imageView.setImageBitmap(capturedBitmap)
                 imageView.visibility = View.VISIBLE
                 previewView.visibility = View.GONE
@@ -228,9 +277,14 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    private fun rotateBitmapIfRequired(bitmap: Bitmap): Bitmap {
-        val matrix = Matrix().apply {
-            postRotate(90f) // Always rotate by 90 degrees
+    private fun rotateBitmapByExifData(uri: Uri, bitmap: Bitmap): Bitmap {
+        val exifInterface = ExifInterface(requireContext().contentResolver.openInputStream(uri)!!)
+        val orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
         }
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
@@ -260,7 +314,7 @@ class ReciteFragment : Fragment() {
         }
     }
 
-    private fun stopReciting() {
+/*    private fun stopReciting() {
         speechRecognitionHelper.stopListening()
         val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
         // Start PracticeActivity with results
@@ -270,7 +324,7 @@ class ReciteFragment : Fragment() {
             putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
         }
         startActivity(intent)
-    }
+    }*/
 
     private fun showCloseButton() {
         closeButton.visibility = View.VISIBLE
@@ -347,6 +401,16 @@ class ReciteFragment : Fragment() {
         ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED
     }
 
+    override fun onPause() {
+        super.onPause()
+        speechRecognitionHelper.stopListening() // Stop listening when fragment is paused
+    }
+
+    override fun onStop() {
+        super.onStop()
+        speechRecognitionHelper.stopListening() // Stop listening when fragment is stopped
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         cameraSound.release()
@@ -354,9 +418,10 @@ class ReciteFragment : Fragment() {
         refreshSound.release()
         cameraHelper.shutdown()
         speechRecognitionHelper.destroy()
+        soundwaveAnimationView.cancelAnimation()
     }
 
     companion object {
-        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA)
+        private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     }
 }

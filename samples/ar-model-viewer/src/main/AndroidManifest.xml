@@ -91,18 +91,6 @@
 
 
 
-        <!--component: SpeechRecognition-->
-        <activity
-            android:name=".library.components.SpeechRecognitionActivity"
-            android:configChanges="orientation|screenSize">
-        </activity>
-
-        <!--component: SpeechRecognition (2)-->
-        <activity
-            android:name=".library.components.CameraSpeechActivity"
-            android:exported="true">
-        </activity>
-
         <!--Library Activity-->
         <activity
             android:name=".library.screens.LibraryActivity"
