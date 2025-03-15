@@ -37,6 +37,7 @@ class SplashActivity : ComponentActivity() {
     @Suppress("DEPRECATION")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        System.setProperty("jna.nosys", "true");
 
         // Initialize MediaPlayer
         mediaPlayer = MediaPlayer.create(this, R.raw.startup)
@@ -51,7 +52,9 @@ class SplashActivity : ComponentActivity() {
                 mediaPlayer.start()
                 delay(3000) // Duration of the splash screen
                 visible = false
-                startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+                startActivity(Intent(this@SplashActivity, InitializationActivity::class.java))
+              /*  startActivity(Intent(this@SplashActivity, MainActivity::class.java))*/
+
                 overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
                 finish()
                 delay(2000)

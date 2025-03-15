@@ -16,7 +16,15 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
-    <!-- fragment_recite.xml -->
+<!--    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:indeterminate="false"
+        android:layout_gravity="center"
+        android:max="100" />-->
+
     <TextView
         android:id="@+id/recognizedTextView"
         android:layout_width="wrap_content"

@@ -314,17 +314,17 @@ class ReciteFragment : Fragment() {
         }
     }
 
-/*    private fun stopReciting() {
-        speechRecognitionHelper.stopListening()
-        val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
-        // Start PracticeActivity with results
-        val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
-            putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
-            putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
-            putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
-        }
-        startActivity(intent)
-    }*/
+    /*    private fun stopReciting() {
+            speechRecognitionHelper.stopListening()
+            val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
+            // Start PracticeActivity with results
+            val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
+                putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
+                putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
+                putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
+            }
+            startActivity(intent)
+        }*/
 
     private fun showCloseButton() {
         closeButton.visibility = View.VISIBLE
