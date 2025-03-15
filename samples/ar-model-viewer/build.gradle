@@ -4,20 +4,27 @@ plugins {
     id 'kotlin-kapt'
     id 'com.google.devtools.ksp'
 }
-
 android {
     compileSdk rootProject.ext.compileSdk
     compileSdkVersion rootProject.ext.compileSdk
 
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
     defaultConfig {
         applicationId "com.google.ar.sceneform.samples.gltf"
-
-        // Sceneform requires minSdk >= 24.
         minSdk rootProject.ext.minSdk
         targetSdk rootProject.ext.targetSdk
         versionCode 1
         versionName "1.0"
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments = [ 'jna.nosys': 'true' ]
+            }
+        }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
@@ -39,30 +46,39 @@ android {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
-    }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        jniLibs {
+            useLegacyPackaging = true // Ensures all .so files are included
         }
+        pickFirst "lib/**/libjnidispatch.so"
+        pickFirst "lib/**/libc++_shared.so"
     }
-    packagingOptions {
-        pickFirst 'lib/armeabi-v7a/libc++_shared.so'
-        pickFirst 'lib/arm64-v8a/libc++_shared.so'
-        pickFirst 'lib/x86/libc++_shared.so'
-        pickFirst 'lib/x86_64/libc++_shared.so'
-    }
-    repositories {
 
+    repositories {
         flatDir {
             dirs 'src/main/java/com/google/ar/sceneform/samples/gltf/libs'
         }
     }
+    sourceSets {
+        main {
+            assets.srcDirs += "$buildDir/generated/assets"
+            jniLibs.srcDirs += 'src/main/jniLibs'
+        }
+    }
+}
+// for speech recognition
+tasks.register('genUUID') {
+    def uuid = UUID.randomUUID().toString()
+    def odir = file("$buildDir/generated/assets/model")
+    def ofile = file("$odir/uuid")
+    doLast {
+        mkdir odir
+        ofile.text = uuid
+    }
 }
 
+preBuild.dependsOn(genUUID)
+
 dependencies {
-
-
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$kotlinx_coroutines_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$kotlinx_coroutines_version"
@@ -75,7 +91,6 @@ dependencies {
     // Material
     implementation "com.google.android.material:material:$material_version"
 
-
     // Sceneform
     implementation "com.gorisse.thomas.sceneform:sceneform:1.23.0"
     implementation 'com.google.ar:core:1.31.0'
@@ -86,11 +101,7 @@ dependencies {
 
     // New dependencies
     implementation 'de.javagl:obj:0.4.0'
-//    implementation 'androidx.lifecycle:lifecycle-common-java8:2.6.2'
     implementation "androidx.compose.material:material-icons-extended:1.5.4"
-//    implementation 'com.google.ar.sceneform.ux:sceneform-ux:1.17.1'
-
-//    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.6.2'
 
     // Jetpack Compose
     def compose_version = "1.5.4"
@@ -107,6 +118,10 @@ dependencies {
     // Speech recognition
     implementation 'com.alphacephei:vosk-android:0.3.32'
     implementation 'com.airbnb.android:lottie:5.0.3'
+    implementation 'net.java.dev.jna:jna:5.16.0'
+    implementation 'net.java.dev.jna:jna-platform:5.16.0'
+
+
 
     // Camera
     implementation "androidx.camera:camera-core:1.1.0-beta01"
@@ -119,14 +134,14 @@ dependencies {
     implementation 'com.google.android.filament:filament-android:1.13.0'
     implementation 'com.google.android.filament:filament-utils-android:1.13.0'
 
-    //UI
+    // UI
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
     implementation 'androidx.viewpager2:viewpager2:1.0.0'
 
-    //For Cropping
+    // For Cropping
     implementation 'com.github.yalantis:ucrop:2.2.8'
 
-    //database
+    // Database
     def room_version = "2.6.1"
     implementation "androidx.room:room-runtime:$room_version"
     implementation "androidx.room:room-ktx:2.5.1"
@@ -136,7 +151,6 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-compose:2.6.2"
 
     // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
-    // See KSP Quickstart to add KSP to your build
     ksp "androidx.room:room-compiler:$room_version"
 
     // Testing
@@ -147,17 +161,11 @@ dependencies {
     debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
     debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 
-    //for running unity games
+    // For running unity games
     implementation group: 'androidx.games', name: 'games-activity', version: '4.0.0'
     implementation 'androidx.games:games-activity:4.0.0'
     runtimeOnly 'androidx.games:games-activity:4.0.0'
 
-
-
-
-    //modules
+    // Modules
     implementation(name: 'unityLibrary-release', ext: 'aar')
-
-
-
 }
