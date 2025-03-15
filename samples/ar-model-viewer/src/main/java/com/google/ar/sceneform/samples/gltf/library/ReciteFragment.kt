@@ -1,7 +1,6 @@
 // ReciteFragment.kt
 package com.google.ar.sceneform.samples.gltf.library
 
-import SpeechRecognitionHelper
 import android.Manifest
 import android.app.Activity.RESULT_OK
 import android.content.pm.PackageManager
@@ -37,6 +36,7 @@ import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.components.CustomUCropActivity
 import com.google.ar.sceneform.samples.gltf.library.helpers.CameraHelper
+import com.google.ar.sceneform.samples.gltf.library.helpers.VoskSpeechRecognitionHelper
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.Text
 import com.google.mlkit.vision.text.TextRecognition
@@ -72,9 +72,7 @@ class ReciteFragment : Fragment() {
     private var previousRecognizedText: String? = null
 
     //speech recognition
-    private lateinit var speechRecognitionHelper: SpeechRecognitionHelper
-
-    private lateinit var startRecitingButton: FloatingActionButton
+    private lateinit var voskSpeechRecognitionHelper: VoskSpeechRecognitionHelper
 
     private val requestPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { permissions ->
         if (permissions[Manifest.permission.CAMERA] == true && permissions[Manifest.permission.RECORD_AUDIO] == true) {
@@ -100,6 +98,21 @@ class ReciteFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         soundwaveAnimationView = view.findViewById(R.id.soundwaveAnimationView)
 
+        // Access voskSpeechRecognitionHelper from App
+        val app = requireActivity().application as App
+        voskSpeechRecognitionHelper = app.voskSpeechRecognitionHelper
+
+        // Check if the model is initialized
+        if (voskSpeechRecognitionHelper.isModelInitialized()) {
+            // Start listening
+            voskSpeechRecognitionHelper.startListening()
+        } else {
+            // Set a callback to start listening once the model is initialized
+            voskSpeechRecognitionHelper.setModelInitializedCallback {
+                voskSpeechRecognitionHelper.startListening()
+            }
+        }
+
         try {
             previewView = view.findViewById(R.id.previewView) ?: throw NullPointerException("PreviewView not found")
             captureButton = view.findViewById(R.id.captureButton) ?: throw NullPointerException("Capture button not found")
@@ -122,7 +135,7 @@ class ReciteFragment : Fragment() {
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
-                speechRecognitionHelper.stopListening() // Stop listening when close button is pressed
+                voskSpeechRecognitionHelper.stopListening() // Stop listening when close button is pressed
             }
 
             //switch
@@ -142,11 +155,8 @@ class ReciteFragment : Fragment() {
 
             setupTouchListeners()
 
-            // Initialize SpeechRecognitionHelper with the soundwaveAnimationView
-            speechRecognitionHelper = SpeechRecognitionHelper(requireContext(), soundwaveAnimationView)
-
             // Observe the recognized text and update the UI
-            speechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
+            voskSpeechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
                 Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
                 recognizedTextView.text = recognizedText ?: "" // Display recognized speech
             })
@@ -159,7 +169,6 @@ class ReciteFragment : Fragment() {
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
-
 
     private fun setupTouchListeners() {
         previewView.setOnTouchListener { _, event ->
@@ -305,33 +314,19 @@ class ReciteFragment : Fragment() {
         // Add any other buttons that should be visible in recitation mode
     }
 
-    //speech recognition
-    private fun startReciting() {
-        recognizedText?.let { text ->
-            speechRecognitionHelper.setReferenceText(text.text)
-            speechRecognitionHelper.startListening()
-            Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    /*    private fun stopReciting() {
-            speechRecognitionHelper.stopListening()
-            val (mispronunciations, skippedWords, stutteredWords) = speechRecognitionHelper.getResults()
-            // Start PracticeActivity with results
-            val intent = Intent(requireContext(), PracticeActivity::class.java).apply {
-                putStringArrayListExtra("mispronunciations", ArrayList(mispronunciations))
-                putStringArrayListExtra("skippedWords", ArrayList(skippedWords))
-                putStringArrayListExtra("stutteredWords", ArrayList(stutteredWords))
-            }
-            startActivity(intent)
-        }*/
-
     private fun showCloseButton() {
         closeButton.visibility = View.VISIBLE
     }
 
     private fun hideCloseButton() {
         closeButton.visibility = View.GONE
+    }
+
+    private fun startReciting() {
+        recognizedText?.let { text ->
+            voskSpeechRecognitionHelper.startListening()
+            Toast.makeText(context, "Listening...", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun performOCROnCapturedImage() {
@@ -403,12 +398,12 @@ class ReciteFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        speechRecognitionHelper.stopListening() // Stop listening when fragment is paused
+        voskSpeechRecognitionHelper.stopListening() // Stop listening when fragment is paused
     }
 
     override fun onStop() {
         super.onStop()
-        speechRecognitionHelper.stopListening() // Stop listening when fragment is stopped
+        voskSpeechRecognitionHelper.stopListening() // Stop listening when fragment is stopped
     }
 
     override fun onDestroy() {
@@ -417,7 +412,7 @@ class ReciteFragment : Fragment() {
         disregardSound.release()
         refreshSound.release()
         cameraHelper.shutdown()
-        speechRecognitionHelper.destroy()
+        voskSpeechRecognitionHelper.destroy()
         soundwaveAnimationView.cancelAnimation()
     }
 

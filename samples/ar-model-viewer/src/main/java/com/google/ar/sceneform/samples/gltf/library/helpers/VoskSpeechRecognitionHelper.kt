@@ -1,9 +1,12 @@
+// VoskSpeechRecognitionHelper.kt
 package com.google.ar.sceneform.samples.gltf.library.helpers
 
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import org.vosk.Model
 import org.vosk.Recognizer
 import org.vosk.android.RecognitionListener
@@ -17,6 +20,11 @@ class VoskSpeechRecognitionHelper(private val context: Context) {
     private val handler = Handler(Looper.getMainLooper())
     private var modelInitializedCallback: (() -> Unit)? = null
     private var progressCallback: ((Int) -> Unit)? = null
+
+    private val _spokenText = MutableLiveData<String>()
+    val spokenText: LiveData<String> get() = _spokenText
+    private val _isSpeaking = MutableLiveData<Boolean>()
+    val isSpeaking: LiveData<Boolean> get() = _isSpeaking
 
     fun initializeModel(model: Model) {
         val startTime = System.currentTimeMillis() // Start time
@@ -59,14 +67,17 @@ class VoskSpeechRecognitionHelper(private val context: Context) {
                 speechService?.startListening(object : RecognitionListener {
                     override fun onPartialResult(hypothesis: String?) {
                         Log.d("VoskSpeechRecognition", "Partial result: $hypothesis")
+                        _spokenText.value = hypothesis
                     }
 
                     override fun onResult(hypothesis: String?) {
                         Log.d("VoskSpeechRecognition", "Result: $hypothesis")
+                        _spokenText.value = hypothesis
                     }
 
                     override fun onFinalResult(hypothesis: String?) {
                         Log.d("VoskSpeechRecognition", "Final result: $hypothesis")
+                        _spokenText.value = hypothesis
                     }
 
                     override fun onError(exception: Exception?) {
