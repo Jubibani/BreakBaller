@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.media.ExifInterface
 import android.media.MediaPlayer
 import android.net.Uri
@@ -22,6 +23,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -51,7 +54,6 @@ class ReciteFragment : Fragment() {
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
     private lateinit var recognizedTextView: TextView
-    private lateinit var resultsTextView: TextView
     private var capturedBitmap: Bitmap? = null
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
@@ -98,7 +100,6 @@ class ReciteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         soundwaveAnimationView = view.findViewById(R.id.soundwaveAnimationView)
-        resultsTextView = view.findViewById(R.id.resultsTextView)
 
         // Access voskSpeechRecognitionHelper from App
         val app = requireActivity().application as App
@@ -134,11 +135,10 @@ class ReciteFragment : Fragment() {
             closeButton = view.findViewById(R.id.closeButton)
             refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
             closeButton.setOnClickListener {
-                voskSpeechRecognitionHelper.stopListening() // Stop listening when close button is pressed
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
-                compareAndDisplayResults() // Compare and display results
+                voskSpeechRecognitionHelper.stopListening() // Stop listening when close button is pressed
             }
 
             //switch
@@ -162,6 +162,7 @@ class ReciteFragment : Fragment() {
             voskSpeechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
                 Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
                 recognizedTextView.text = recognizedText ?: "" // Display recognized speech
+                compareAndDisplayResults() // Call this function to compare and display results
             })
 
         } catch (e: NullPointerException) {
@@ -178,12 +179,55 @@ class ReciteFragment : Fragment() {
         val spokenText = voskSpeechRecognitionHelper.spokenText.value ?: return
 
         val results = compareTextAndHighlight(recognizedText, spokenText)
-        val resultsText = results.joinToString("\n") { (correct, incorrect) ->
-            "Correct: $correct\nIncorrect: $incorrect"
+        val tableLayout = view?.findViewById<TableLayout>(R.id.resultsTable) ?: return
+
+        // Clear previous results
+        tableLayout.removeAllViews()
+
+        // Add header row
+        val headerRow = TableRow(context)
+        val wordHeader = TextView(context).apply {
+            text = "Word"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        val pronouncedHeader = TextView(context).apply {
+            text = "Pronounced"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        val correctPronunciationHeader = TextView(context).apply {
+            text = "Correctly Pronounced As"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        headerRow.addView(wordHeader)
+        headerRow.addView(pronouncedHeader)
+        headerRow.addView(correctPronunciationHeader)
+        tableLayout.addView(headerRow)
+
+        // Add result rows
+        results.forEach { (correct, incorrect) ->
+            val row = TableRow(context)
+            val wordTextView = TextView(context).apply {
+                text = correct
+                setPadding(8, 8, 8, 8)
+            }
+            val pronouncedTextView = TextView(context).apply {
+                text = incorrect
+                setPadding(8, 8, 8, 8)
+            }
+            val correctPronunciationTextView = TextView(context).apply {
+                text = correct // Assuming the correct pronunciation is the recognized word
+                setPadding(8, 8, 8, 8)
+            }
+            row.addView(wordTextView)
+            row.addView(pronouncedTextView)
+            row.addView(correctPronunciationTextView)
+            tableLayout.addView(row)
         }
 
-        resultsTextView.text = resultsText
-        resultsTextView.visibility = View.VISIBLE
+        tableLayout.visibility = View.VISIBLE
     }
 
     private fun compareTextAndHighlight(recognizedText: String, spokenText: String): List<Pair<String, String>> {
