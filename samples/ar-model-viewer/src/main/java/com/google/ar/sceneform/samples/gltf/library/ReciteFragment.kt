@@ -51,6 +51,7 @@ class ReciteFragment : Fragment() {
     private lateinit var captureButton: FloatingActionButton
     private lateinit var imageView: ImageView
     private lateinit var recognizedTextView: TextView
+    private lateinit var resultsTextView: TextView
     private var capturedBitmap: Bitmap? = null
     private lateinit var textRecognizer: com.google.mlkit.vision.text.TextRecognizer
     private lateinit var textOverlay: TextOverlay
@@ -97,6 +98,7 @@ class ReciteFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         soundwaveAnimationView = view.findViewById(R.id.soundwaveAnimationView)
+        resultsTextView = view.findViewById(R.id.resultsTextView)
 
         // Access voskSpeechRecognitionHelper from App
         val app = requireActivity().application as App
@@ -132,10 +134,11 @@ class ReciteFragment : Fragment() {
             closeButton = view.findViewById(R.id.closeButton)
             refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
             closeButton.setOnClickListener {
+                voskSpeechRecognitionHelper.stopListening() // Stop listening when close button is pressed
                 resetCamera()
                 hideCloseButton()
                 showRecitationButtons() // Show all buttons for recitation mode
-                voskSpeechRecognitionHelper.stopListening() // Stop listening when close button is pressed
+                compareAndDisplayResults() // Compare and display results
             }
 
             //switch
@@ -168,6 +171,34 @@ class ReciteFragment : Fragment() {
             Log.e("ReciteFragment", "Unexpected error: ${e.message}")
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun compareAndDisplayResults() {
+        val recognizedText = recognizedText?.text ?: return
+        val spokenText = voskSpeechRecognitionHelper.spokenText.value ?: return
+
+        val results = compareTextAndHighlight(recognizedText, spokenText)
+        val resultsText = results.joinToString("\n") { (correct, incorrect) ->
+            "Correct: $correct\nIncorrect: $incorrect"
+        }
+
+        resultsTextView.text = resultsText
+        resultsTextView.visibility = View.VISIBLE
+    }
+
+    private fun compareTextAndHighlight(recognizedText: String, spokenText: String): List<Pair<String, String>> {
+        val recognizedWords = recognizedText.split("\\s+".toRegex())
+        val spokenWords = spokenText.split("\\s+".toRegex())
+
+        val wordsToPractice = mutableListOf<Pair<String, String>>()
+
+        for ((index, word) in recognizedWords.withIndex()) {
+            if (index < spokenWords.size && word != spokenWords[index]) {
+                wordsToPractice.add(Pair(word, spokenWords[index]))
+            }
+        }
+
+        return wordsToPractice
     }
 
     private fun setupTouchListeners() {
