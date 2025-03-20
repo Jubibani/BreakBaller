@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.graphics.Typeface
 import android.media.ExifInterface
 import android.media.MediaPlayer
 import android.net.Uri
@@ -22,6 +23,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.TableLayout
+import android.widget.TableRow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -159,6 +162,7 @@ class ReciteFragment : Fragment() {
             voskSpeechRecognitionHelper.spokenText.observe(viewLifecycleOwner, Observer { recognizedText ->
                 Log.d("SpeechRecognition", "Updating UI with text: $recognizedText")
                 recognizedTextView.text = recognizedText ?: "" // Display recognized speech
+                compareAndDisplayResults() // Call this function to compare and display results
             })
 
         } catch (e: NullPointerException) {
@@ -168,6 +172,77 @@ class ReciteFragment : Fragment() {
             Log.e("ReciteFragment", "Unexpected error: ${e.message}")
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
         }
+    }
+
+    private fun compareAndDisplayResults() {
+        val recognizedText = recognizedText?.text ?: return
+        val spokenText = voskSpeechRecognitionHelper.spokenText.value ?: return
+
+        val results = compareTextAndHighlight(recognizedText, spokenText)
+        val tableLayout = view?.findViewById<TableLayout>(R.id.resultsTable) ?: return
+
+        // Clear previous results
+        tableLayout.removeAllViews()
+
+        // Add header row
+        val headerRow = TableRow(context)
+        val wordHeader = TextView(context).apply {
+            text = "Word"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        val pronouncedHeader = TextView(context).apply {
+            text = "Pronounced"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        val correctPronunciationHeader = TextView(context).apply {
+            text = "Correctly Pronounced As"
+            setPadding(8, 8, 8, 8)
+            setTypeface(null, Typeface.BOLD)
+        }
+        headerRow.addView(wordHeader)
+        headerRow.addView(pronouncedHeader)
+        headerRow.addView(correctPronunciationHeader)
+        tableLayout.addView(headerRow)
+
+        // Add result rows
+        results.forEach { (correct, incorrect) ->
+            val row = TableRow(context)
+            val wordTextView = TextView(context).apply {
+                text = correct
+                setPadding(8, 8, 8, 8)
+            }
+            val pronouncedTextView = TextView(context).apply {
+                text = incorrect
+                setPadding(8, 8, 8, 8)
+            }
+            val correctPronunciationTextView = TextView(context).apply {
+                text = correct // Assuming the correct pronunciation is the recognized word
+                setPadding(8, 8, 8, 8)
+            }
+            row.addView(wordTextView)
+            row.addView(pronouncedTextView)
+            row.addView(correctPronunciationTextView)
+            tableLayout.addView(row)
+        }
+
+        tableLayout.visibility = View.VISIBLE
+    }
+
+    private fun compareTextAndHighlight(recognizedText: String, spokenText: String): List<Pair<String, String>> {
+        val recognizedWords = recognizedText.split("\\s+".toRegex())
+        val spokenWords = spokenText.split("\\s+".toRegex())
+
+        val wordsToPractice = mutableListOf<Pair<String, String>>()
+
+        for ((index, word) in recognizedWords.withIndex()) {
+            if (index < spokenWords.size && word != spokenWords[index]) {
+                wordsToPractice.add(Pair(word, spokenWords[index]))
+            }
+        }
+
+        return wordsToPractice
     }
 
     private fun setupTouchListeners() {

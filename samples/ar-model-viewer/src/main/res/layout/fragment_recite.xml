@@ -16,15 +16,6 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
-<!--    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:visibility="gone"
-        android:indeterminate="false"
-        android:layout_gravity="center"
-        android:max="100" />-->
-
     <TextView
         android:id="@+id/recognizedTextView"
         android:layout_width="wrap_content"
@@ -33,6 +24,25 @@
         android:textSize="16sp"
         android:layout_marginTop="16dp"
         android:layout_gravity="center_horizontal"/>
+
+    <TableLayout
+        android:id="@+id/resultsTable"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:padding="16dp"
+        android:visibility="gone">
+        <TableRow>
+            <TextView
+                android:text="Word"
+                android:textStyle="bold"
+                android:padding="8dp"/>
+            <TextView
+                android:text="Pronounced"
+                android:textStyle="bold"
+                android:padding="8dp"/>
+        </TableRow>
+    </TableLayout>
 
     <com.google.ar.sceneform.samples.gltf.library.TextOverlay
         android:id="@+id/textOverlay"
