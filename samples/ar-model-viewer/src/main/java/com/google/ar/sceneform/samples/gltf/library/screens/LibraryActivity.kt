@@ -192,6 +192,7 @@ val modelActivityMap = mapOf(
     "Heart" to HeartActivity::class.java
     // Add more mappings as needed
 )*/
+
 fun getModelItems(): List<ModelItemData> {
     return listOf(
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
@@ -199,6 +200,10 @@ fun getModelItems(): List<ModelItemData> {
         ModelItemData("Digestive", "models/digestive.glb", R.drawable.digestive),
         ModelItemData("Platypus", "models/platypus.glb", R.drawable.platypus),
         ModelItemData("Heart", "models/heart.glb", R.drawable.heart),
+        ModelItemData("Microscope", "models/microscope.glb", R.drawable.microscrope),
+        ModelItemData("Earth", "models/earth.glb", R.drawable.earth),
+        ModelItemData("Animal", "models/animal.glb", R.drawable.animals),
+        ModelItemData("Plant", "models/plant.glb", R.drawable.plant),
         // Add more items as needed
     )
 }
