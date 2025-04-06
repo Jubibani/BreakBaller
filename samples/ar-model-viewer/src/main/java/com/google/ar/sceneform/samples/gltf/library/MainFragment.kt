@@ -1,5 +1,6 @@
 package com.google.ar.sceneform.samples.gltf.library
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
@@ -9,7 +10,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
@@ -52,8 +55,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
     private var lastToastTime = 0L
-    private val TOAST_COOLDOWN_MS = 20000 // 9 seconds cooldown
-
+    private val TOAST_COOLDOWN_MS = 20000 // 20 seconds cooldown
 
     private lateinit var modelDao: ModelDao
     private val recognizableModelNames = mutableListOf<String>()
@@ -67,8 +69,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         AppDatabase.getDatabase(requireContext(), lifecycleScope).modelDao().getAllModels()
     }
 
-
-
     //sounds
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var ping: MediaPlayer
@@ -79,7 +79,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var lastPingTime = 0L
     private val PING_DEBOUNCE_TIME = 2000L // 2 seconds
 
-
     //hiding
     private lateinit var infoButton: FloatingActionButton
     private var isInfoVisible = false
@@ -87,15 +86,16 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     //restart
     private lateinit var restartButton: FloatingActionButton
 
+    // Declare magnifyingGlassNode and modelRenderable
+    private var magnifyingGlassNode: Node? = null
+    private var modelRenderable: ModelRenderable? = null
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
-
         val database = AppDatabase.getDatabase(requireContext(), CoroutineScope(Dispatchers.IO))
         modelDao = database.modelDao()
-
 
         arFragment = childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment
 
@@ -112,7 +112,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             recognizableModelNames.addAll(modelsList.map { it.name })
 
             preloadModels()
-
         }
 
         // Initialize MediaPlayer
@@ -128,7 +127,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             toggleInfoVisibility()
         }
 
-
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
                 // Modify the AR session configuration here
@@ -139,6 +137,49 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
+        //magnifying_glass
+        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)
+        magnifyingGlassButton.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    Log.d("MainFragment", "Button pressed: showing magnifying glass")
+                    showMagnifyingGlass()
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    Log.d("MainFragment", "Button released: hiding magnifying glass")
+                    hideMagnifyingGlass()
+                    true
+                }
+                else -> false
+            }
+        }
+
+        // Load the 3D model
+        ModelRenderable.builder()
+            .setSource(context, Uri.parse("file:///android_asset/models/realmagnifying.glb"))
+            .setIsFilamentGltf(true)
+            .build()
+            .thenAccept { renderable -> modelRenderable = renderable }
+            .exceptionally { throwable ->
+                Log.e("MainFragment", "Unable to load Renderable.", throwable)
+                null
+            }
+    }
+
+    private fun showMagnifyingGlass() {
+        if (magnifyingGlassNode == null) {
+            magnifyingGlassNode = Node().apply {
+                setParent(arFragment.arSceneView.scene.camera)
+                localPosition = Vector3(0.0f, -0.1f, -0.3f) // Lower the magnifying glass by setting y to -0.1f
+                renderable = modelRenderable
+            }
+        }
+    }
+
+    private fun hideMagnifyingGlass() {
+        magnifyingGlassNode?.setParent(null)
+        magnifyingGlassNode = null
     }
 
     private fun preloadModels() {
@@ -187,6 +228,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                                 Log.d("TextRecognition", "Model detected: $modelName")
                                                 lastToastTime = currentTimeMs
                                             }
+                                            hideMagnifyingGlass()
+                                            view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
+
+
                                             renderModelOnSurface(modelName)
                                             break
                                         }
@@ -234,7 +279,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     private fun placeModel(anchor: Anchor, modelEntity: ModelEntity) {
         val modelName = modelEntity.name
         val model = models[modelName] ?: return
@@ -268,10 +312,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         infoButton.visibility = View.VISIBLE
     }
 
-
     private fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
+
     private fun vibrate() {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -290,6 +334,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
     }
+
     private fun toggleInfoVisibility() {
         isInfoVisible = !isInfoVisible
         scene.findByName("InfoNode")?.let { infoNode ->
@@ -313,9 +358,11 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun playRenderSound() {
         mediaPlayer.start()
     }
+
     private fun pingSound() {
         ping.start()
     }
+
     private fun startRepeatingPing() {
         // Cancel any existing ping job
         pingJob?.cancel()
@@ -332,12 +379,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     private fun stopRepeatingPing() {
         pingJob?.cancel()
         pingJob = null
         lastPingTime = 0L
     }
+
     private fun onSound() {
         on.start()
     }
@@ -345,8 +392,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun offSound() {
         off.start()
     }
-
-
 
     override fun onDestroy() {
         super.onDestroy()
