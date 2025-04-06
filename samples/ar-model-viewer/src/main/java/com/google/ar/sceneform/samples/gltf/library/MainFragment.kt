@@ -1,5 +1,6 @@
 package com.google.ar.sceneform.samples.gltf.library
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
@@ -19,7 +20,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
-import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.ArSceneView
@@ -55,7 +55,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
     private var lastToastTime = 0L
-    private val TOAST_COOLDOWN_MS = 20000 // 9 seconds cooldown
+    private val TOAST_COOLDOWN_MS = 20000 // 20 seconds cooldown
 
     private lateinit var modelDao: ModelDao
     private val recognizableModelNames = mutableListOf<String>()
@@ -90,6 +90,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -227,6 +228,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                                 Log.d("TextRecognition", "Model detected: $modelName")
                                                 lastToastTime = currentTimeMs
                                             }
+                                            hideMagnifyingGlass()
+                                            view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
+
+
                                             renderModelOnSurface(modelName)
                                             break
                                         }
