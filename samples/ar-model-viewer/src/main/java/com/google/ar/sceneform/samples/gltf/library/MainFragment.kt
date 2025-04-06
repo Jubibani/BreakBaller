@@ -113,11 +113,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
             preloadModels()
 
-            preloadModels()
         }
-
-
-
 
         // Initialize MediaPlayer
         mediaPlayer = MediaPlayer.create(context, R.raw.popup)
@@ -131,7 +127,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         infoButton.setOnClickListener {
             toggleInfoVisibility()
         }
-
 
 
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
@@ -161,12 +156,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 1000 // Process at most every
-
+        val minProcessingIntervalMs = 1000 // Process at most every second
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
             val currentTimeMs = System.currentTimeMillis()
@@ -183,8 +176,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         val inputImage = InputImage.fromMediaImage(image, 0)
                         textRecognizer.process(inputImage)
                             .addOnSuccessListener { visionText ->
-                                for (modelName in recognizableModelNames) { // ✅ Use the updated list
-                                    if (visionText.text.contains(modelName, ignoreCase = true)) {
+                                val recognizedText = visionText.text.lowercase()
+                                for (modelName in recognizableModelNames) {
+                                    if (recognizedText.contains(modelName.lowercase())) {
                                         if (!isModelPlaced) {
                                             vibrate()
                                             startRepeatingPing() // Start repeating ping
@@ -211,7 +205,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     Log.e("TextRecognition", "Error processing frame", e)
                 }
             }
-
         }
     }
 

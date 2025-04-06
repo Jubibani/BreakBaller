@@ -83,10 +83,14 @@ abstract class AppDatabase : RoomDatabase() {
             modelDao.insertModel(ModelEntity("Digestive", "models/digestive.glb", R.layout.digestive_infos, "Tap to see the digestive process!", R.raw.digestsound))
             modelDao.insertModel(ModelEntity("Platypus", "models/platypus.glb", R.layout.platypus_infos, "Tap to discover platypus facts!", R.raw.platypusound))
             modelDao.insertModel(ModelEntity("Heart", "models/heart.glb", R.layout.heart_info, "Tap to see the heart in action!", R.raw.heartsound))
-
+            modelDao.insertModel(ModelEntity("Microscope", "models/microscope.glb", R.layout.microscope_infos, "Tap to see the microscope in action!", R.raw.popup))
+            modelDao.insertModel(ModelEntity("Earth", "models/earth.glb", R.layout.earth_infos, "Tap to see the earth in action!", R.raw.sonarping))
+            modelDao.insertModel(ModelEntity("Animal", "models/animal.glb", R.layout.animal_infos, "Tap to see the animals in action!", R.raw.animals_sound))
+            modelDao.insertModel(ModelEntity("Plant", "models/plant.glb", R.layout.plant_info, "Tap to see the plants in action!", R.raw.popup))
+            modelDao.insertModel(ModelEntity("Biotic", "models/biotic.glb", R.layout.biotic_infos, "Tap to see the biotic in action!", R.raw.bacteriasound))
             // Ensure Initial Brain Points Exist
             brainPointsDao.updatePoints(0)
-
+ 
             // Populate the database with contents ready to be unlocked and interacted as rewards
             miniGameDao.insertGame(MiniGameEntity("1", "Reward Item 1", false))
             miniGameDao.insertGame(MiniGameEntity("2", "Reward Item 2", false))
