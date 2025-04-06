@@ -204,6 +204,7 @@ fun getModelItems(): List<ModelItemData> {
         ModelItemData("Earth", "models/earth.glb", R.drawable.earth),
         ModelItemData("Animal", "models/animal.glb", R.drawable.animals),
         ModelItemData("Plant", "models/plant.glb", R.drawable.plant),
+        ModelItemData("Biotic", "models/biotic.glb", R.drawable.biotic),
         // Add more items as needed
     )
 }
