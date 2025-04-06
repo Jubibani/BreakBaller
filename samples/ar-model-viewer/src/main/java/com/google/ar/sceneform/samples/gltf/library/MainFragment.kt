@@ -9,7 +9,9 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
+import android.widget.Button
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
@@ -17,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
+import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.AnchorNode
 import com.google.ar.sceneform.ArSceneView
@@ -93,6 +96,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
 
 
+
         val database = AppDatabase.getDatabase(requireContext(), CoroutineScope(Dispatchers.IO))
         modelDao = database.modelDao()
 
@@ -139,6 +143,44 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
+        //magnifying_glass
+        val magnifyingGlassButton: Button = view.findViewById(R.id.magnifyingGlassButton)
+        magnifyingGlassButton.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    Log.d("MainFragment", "Button pressed: showing magnifying glass")
+                    showMagnifyingGlass()
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    Log.d("MainFragment", "Button released: hiding magnifying glass")
+                    hideMagnifyingGlass()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showMagnifyingGlass() {
+        val modelEntity = modelInfoMap["magnifying_glass"] ?: run {
+            Log.e("MainFragment", "Model 'magnifying_glass' not found in modelInfoMap")
+            return
+        }
+        val anchor = arFragment.arSceneView.session?.createAnchor(Pose.IDENTITY) ?: run {
+            Log.e("MainFragment", "Failed to create anchor")
+            return
+        }
+
+        Log.d("MainFragment", "Placing model: ${modelEntity.name}")
+        placeModel(anchor, modelEntity)
+    }
+
+    private fun hideMagnifyingGlass() {
+        scene.findByName("magnifying_glass")?.let { magnifyingGlassNode ->
+            Log.d("MainFragment", "Removing model: magnifying_glass")
+            scene.removeChild(magnifyingGlassNode)
+        }
     }
 
     private fun preloadModels() {

@@ -30,7 +30,7 @@
         app:tint="@android:color/white"
         android:visibility="visible" />
 
-
+    <!-- Info Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/infoButton"
         android:layout_width="wrap_content"
@@ -48,10 +48,9 @@
         android:background="@android:color/transparent"
         app:borderWidth="0dp"
         app:rippleColor="@android:color/transparent"
+        android:layout_gravity="top|end" />
 
-        android:layout_gravity="top|end"
-        />
-
+    <!-- Library Back Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/libraryBackButton"
         android:layout_width="wrap_content"
@@ -70,6 +69,12 @@
         app:borderWidth="0dp"
         app:rippleColor="@android:color/transparent" />
 
-
-
+    <!-- Magnifying Glass Button -->
+    <Button
+        android:id="@+id/magnifyingGlassButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Hold to Show Magnifying Glass"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="16dp" />
 </FrameLayout>
