@@ -1,6 +1,5 @@
 package com.google.ar.sceneform.samples.gltf.library
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
@@ -90,7 +89,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
 
-    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -108,7 +106,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             modelInfoMap.clear()
             modelsList.forEach { modelInfoMap[it.name] = it }
 
-            recognizableModelNames.clear() // 🛠️ Update recognizable models
+            recognizableModelNames.clear()
             recognizableModelNames.addAll(modelsList.map { it.name })
 
             preloadModels()
@@ -120,9 +118,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
 
-        //initialize views
+        // Initialize views
         infoButton = view.findViewById(R.id.infoButton)
-        // Set up infoButton click listener
         infoButton.setOnClickListener {
             toggleInfoVisibility()
         }
@@ -137,7 +134,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
-        //magnifying_glass
+        // Magnifying glass button
         val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)
         magnifyingGlassButton.setOnTouchListener { _, event ->
             when (event.action) {
@@ -174,12 +171,15 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 localPosition = Vector3(0.0f, -0.1f, -0.3f) // Lower the magnifying glass by setting y to -0.1f
                 renderable = modelRenderable
             }
+        } else {
+            magnifyingGlassNode?.setParent(arFragment.arSceneView.scene.camera)
         }
+        magnifyingGlassNode?.isEnabled = true
     }
 
     private fun hideMagnifyingGlass() {
         magnifyingGlassNode?.setParent(null)
-        magnifyingGlassNode = null
+        magnifyingGlassNode?.isEnabled = false
     }
 
     private fun preloadModels() {
@@ -230,7 +230,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                             }
                                             hideMagnifyingGlass()
                                             view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
-
 
                                             renderModelOnSurface(modelName)
                                             break
@@ -391,6 +390,20 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private fun offSound() {
         off.start()
+    }
+
+    private fun unloadModels() {
+        models.clear()
+        modelViews.clear()
+        modelRenderable = null
+    }
+
+    private fun switchToReciteFragment() {
+        unloadModels()
+        parentFragmentManager.beginTransaction()
+            .replace(R.id.containerFragment, ReciteFragment())
+            .addToBackStack(null)
+            .commit()
     }
 
     override fun onDestroy() {
