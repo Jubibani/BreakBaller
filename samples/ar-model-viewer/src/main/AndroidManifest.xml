@@ -72,14 +72,15 @@
 
 </activity>
 
-<!--Main Activity-->
+<!--Magnifying Activity
 <activity
     android:name=".library.screens.MagnifyingActivity"
     android:configChanges="orientation|screenSize"
     android:exported="true"
     android:screenOrientation="locked">
 
-</activity>
+</activity> -->
+
 <!--Main Activity-->
 <activity
     android:name=".library.screens.MainActivity"

@@ -150,8 +150,7 @@ class InitializationActivity : AppCompatActivity() {
     @OptIn(UnstableApi::class)
     private fun startMainActivity() {
         Log.d("InitializationActivity", "Starting MainActivity")
-/*        val intent = Intent(this, MainActivity::class.java)*/
-        val intent = Intent(this, MagnifyingActivity::class.java)
+        val intent = Intent(this, MainActivity::class.java)
         startActivity(intent)
         finish()
     }

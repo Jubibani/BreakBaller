@@ -11,7 +11,7 @@ import android.os.VibratorManager
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
+import android.widget.ImageButton
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
@@ -57,7 +57,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var lastToastTime = 0L
     private val TOAST_COOLDOWN_MS = 20000 // 9 seconds cooldown
 
-
     private lateinit var modelDao: ModelDao
     private val recognizableModelNames = mutableListOf<String>()
 
@@ -70,8 +69,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         AppDatabase.getDatabase(requireContext(), lifecycleScope).modelDao().getAllModels()
     }
 
-
-
     //sounds
     private lateinit var mediaPlayer: MediaPlayer
     private lateinit var ping: MediaPlayer
@@ -82,7 +79,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var lastPingTime = 0L
     private val PING_DEBOUNCE_TIME = 2000L // 2 seconds
 
-
     //hiding
     private lateinit var infoButton: FloatingActionButton
     private var isInfoVisible = false
@@ -90,16 +86,15 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     //restart
     private lateinit var restartButton: FloatingActionButton
 
+    // Declare magnifyingGlassNode and modelRenderable
+    private var magnifyingGlassNode: Node? = null
+    private var modelRenderable: ModelRenderable? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-
-
-
         val database = AppDatabase.getDatabase(requireContext(), CoroutineScope(Dispatchers.IO))
         modelDao = database.modelDao()
-
 
         arFragment = childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment
 
@@ -116,7 +111,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             recognizableModelNames.addAll(modelsList.map { it.name })
 
             preloadModels()
-
         }
 
         // Initialize MediaPlayer
@@ -132,7 +126,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             toggleInfoVisibility()
         }
 
-
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
                 // Modify the AR session configuration here
@@ -144,7 +137,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
 
         //magnifying_glass
-        val magnifyingGlassButton: Button = view.findViewById(R.id.magnifyingGlassButton)
+        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)
         magnifyingGlassButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -160,27 +153,32 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 else -> false
             }
         }
+
+        // Load the 3D model
+        ModelRenderable.builder()
+            .setSource(context, Uri.parse("file:///android_asset/models/realmagnifying.glb"))
+            .setIsFilamentGltf(true)
+            .build()
+            .thenAccept { renderable -> modelRenderable = renderable }
+            .exceptionally { throwable ->
+                Log.e("MainFragment", "Unable to load Renderable.", throwable)
+                null
+            }
     }
 
     private fun showMagnifyingGlass() {
-        val modelEntity = modelInfoMap["magnifying_glass"] ?: run {
-            Log.e("MainFragment", "Model 'magnifying_glass' not found in modelInfoMap")
-            return
+        if (magnifyingGlassNode == null) {
+            magnifyingGlassNode = Node().apply {
+                setParent(arFragment.arSceneView.scene.camera)
+                localPosition = Vector3(0.0f, -0.1f, -0.3f) // Lower the magnifying glass by setting y to -0.1f
+                renderable = modelRenderable
+            }
         }
-        val anchor = arFragment.arSceneView.session?.createAnchor(Pose.IDENTITY) ?: run {
-            Log.e("MainFragment", "Failed to create anchor")
-            return
-        }
-
-        Log.d("MainFragment", "Placing model: ${modelEntity.name}")
-        placeModel(anchor, modelEntity)
     }
 
     private fun hideMagnifyingGlass() {
-        scene.findByName("magnifying_glass")?.let { magnifyingGlassNode ->
-            Log.d("MainFragment", "Removing model: magnifying_glass")
-            scene.removeChild(magnifyingGlassNode)
-        }
+        magnifyingGlassNode?.setParent(null)
+        magnifyingGlassNode = null
     }
 
     private fun preloadModels() {
@@ -276,7 +274,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     private fun placeModel(anchor: Anchor, modelEntity: ModelEntity) {
         val modelName = modelEntity.name
         val model = models[modelName] ?: return
@@ -310,10 +307,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         infoButton.visibility = View.VISIBLE
     }
 
-
     private fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
+
     private fun vibrate() {
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context?.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
@@ -332,6 +329,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
     }
+
     private fun toggleInfoVisibility() {
         isInfoVisible = !isInfoVisible
         scene.findByName("InfoNode")?.let { infoNode ->
@@ -355,9 +353,11 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun playRenderSound() {
         mediaPlayer.start()
     }
+
     private fun pingSound() {
         ping.start()
     }
+
     private fun startRepeatingPing() {
         // Cancel any existing ping job
         pingJob?.cancel()
@@ -374,12 +374,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     private fun stopRepeatingPing() {
         pingJob?.cancel()
         pingJob = null
         lastPingTime = 0L
     }
+
     private fun onSound() {
         on.start()
     }
@@ -387,8 +387,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun offSound() {
         off.start()
     }
-
-
 
     override fun onDestroy() {
         super.onDestroy()
