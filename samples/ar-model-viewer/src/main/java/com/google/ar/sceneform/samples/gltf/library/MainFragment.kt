@@ -1,5 +1,6 @@
 package com.google.ar.sceneform.samples.gltf.library
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.media.MediaPlayer
 import android.net.Uri
@@ -73,6 +74,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var ping: MediaPlayer
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
+    private lateinit var riser: MediaPlayer
 
     private var pingJob: Job? = null
     private var lastPingTime = 0L
@@ -89,6 +91,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
 
+    private var isTextRecognitionActive = false
+
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -117,6 +122,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         ping = MediaPlayer.create(context, R.raw.sonarping)
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
+        riser = MediaPlayer.create(context, R.raw.riser)
 
         // Initialize views
         infoButton = view.findViewById(R.id.infoButton)
@@ -141,11 +147,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 MotionEvent.ACTION_DOWN -> {
                     Log.d("MainFragment", "Button pressed: showing magnifying glass")
                     showMagnifyingGlass()
+                    startTextRecognition()
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     Log.d("MainFragment", "Button released: hiding magnifying glass")
                     hideMagnifyingGlass()
+                    stopTextRecognition()
                     true
                 }
                 else -> false
@@ -203,6 +211,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         val minProcessingIntervalMs = 1000 // Process at most every second
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
+            if (!isTextRecognitionActive) return@addOnUpdateListener
+
             val currentTimeMs = System.currentTimeMillis()
             if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
                 return@addOnUpdateListener
@@ -220,20 +230,28 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                 val recognizedText = visionText.text.lowercase()
                                 for (modelName in recognizableModelNames) {
                                     if (recognizedText.contains(modelName.lowercase())) {
-                                        if (!isModelPlaced) {
-                                            vibrate()
-                                            startRepeatingPing() // Start repeating ping
-                                            if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
-                                                showToast("'$modelName' detected! Find a Surface to Render the model.")
-                                                Log.d("TextRecognition", "Model detected: $modelName")
-                                                lastToastTime = currentTimeMs
-                                            }
-                                            hideMagnifyingGlass()
-                                            view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
 
-                                            renderModelOnSurface(modelName)
-                                            break
+                                        //start sound
+                                        riser.start()
+                                        //when sound is done, run the code block within
+                                        riser.setOnCompletionListener{
+                                            if (!isModelPlaced) {
+                                                vibrate()
+                                                startRepeatingPing() // Start repeating ping
+                                                if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
+                                                    showToast("'$modelName' detected! Find a Surface to Render the model.")
+                                                    Log.d("TextRecognition", "Model detected: $modelName")
+                                                    lastToastTime = currentTimeMs
+                                                }
+                                                hideMagnifyingGlass()
+                                                view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
+
+                                                renderModelOnSurface(modelName)
+                                            }
                                         }
+                                        //break from renderModelOnSurface to render only once
+                                        break
+
                                     }
                                 }
                             }
@@ -250,6 +268,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 }
             }
         }
+    }
+
+    private fun startTextRecognition() {
+        isTextRecognitionActive = true
+    }
+
+    private fun stopTextRecognition() {
+        isTextRecognitionActive = false
     }
 
     private fun renderModelOnSurface(modelName: String) {
@@ -411,5 +437,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         mediaPlayer.release()
         on.release()
         off.release()
+        riser.release()
     }
 }
