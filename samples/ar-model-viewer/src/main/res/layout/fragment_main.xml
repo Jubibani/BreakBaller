@@ -30,6 +30,12 @@
         app:tint="@android:color/white"
         android:visibility="visible" />
 
+    <com.google.ar.sceneform.samples.gltf.library.overlays.ViewfinderOverlayView
+        android:id="@+id/viewfinderOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible" />
+
     <!-- Info Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/infoButton"

@@ -2,6 +2,8 @@ package com.google.ar.sceneform.samples.gltf.library
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.media.Image
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
@@ -33,6 +35,7 @@ import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.data.local.dao.ModelDao
 import com.google.ar.sceneform.samples.gltf.library.data.local.database.AppDatabase
 import com.google.ar.sceneform.samples.gltf.library.data.local.entities.ModelEntity
+import com.google.ar.sceneform.samples.gltf.library.helpers.MediaImageToBitmapHelper
 import com.google.ar.sceneform.ux.ArFragment
 import com.google.ar.sceneform.ux.TransformableNode
 import com.google.mlkit.vision.common.InputImage
@@ -231,18 +234,16 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 try {
                     val image = frame.acquireCameraImage()
                     if (image != null) {
-                        val inputImage = InputImage.fromMediaImage(image, 0)
-                        textRecognizer.process(inputImage)
+                        val croppedImage = cropToViewfinder(image)
+                        textRecognizer.process(croppedImage)
+
                             .addOnSuccessListener { visionText ->
                                 val recognizedText = visionText.text.lowercase()
                                 for (modelName in recognizableModelNames) {
                                     if (recognizedText.contains(modelName.lowercase())) {
-
-                                        //start sound
+                                        // Start playing the riser sound
                                         riser.start()
-                                        //when sound is done, run the code block within
-
-                                        riser.setOnCompletionListener{
+                                        riser.setOnCompletionListener {
                                             if (!isModelPlaced) {
                                                 vibrate()
                                                 startRepeatingPing() // Start repeating ping
@@ -257,9 +258,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                                 renderModelOnSurface(modelName)
                                             }
                                         }
-                                        //break from renderModelOnSurface to render only once
                                         break
-
                                     }
                                 }
                             }
@@ -278,6 +277,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
+
     private fun startTextRecognition() {
         isTextRecognitionActive = true
     }
@@ -285,6 +285,25 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun stopTextRecognition() {
         isTextRecognitionActive = false
     }
+
+
+    private fun cropToViewfinder(image: Image): InputImage {
+        val bitmap = MediaImageToBitmapHelper.convert(image)
+
+        val width = bitmap.width
+        val height = bitmap.height
+        val radius = Math.min(width, height) / 4
+
+        val centerX = width / 2
+        val centerY = height / 2
+        val left = (centerX - radius).coerceAtLeast(0)
+        val top = (centerY - radius).coerceAtLeast(0)
+        val size = (radius * 2).coerceAtMost(width - left)
+
+        val croppedBitmap = Bitmap.createBitmap(bitmap, left, top, size, size)
+        return InputImage.fromBitmap(croppedBitmap, 0)
+    }
+
 
     private fun renderModelOnSurface(modelName: String) {
         val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
