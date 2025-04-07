@@ -30,11 +30,12 @@
         app:tint="@android:color/white"
         android:visibility="visible" />
 
-    <com.google.ar.sceneform.samples.gltf.library.overlays.ViewfinderOverlayView
-        android:id="@+id/viewfinderOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="visible" />
+    <!--Magnifying glass preview-->
+    <ImageView
+        android:id="@+id/croppedImageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
 
     <!-- Info Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton

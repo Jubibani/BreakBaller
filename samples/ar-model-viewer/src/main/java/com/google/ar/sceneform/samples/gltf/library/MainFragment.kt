@@ -3,6 +3,13 @@ package com.google.ar.sceneform.samples.gltf.library
 import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
+import android.graphics.RectF
 import android.media.Image
 import android.media.MediaPlayer
 import android.net.Uri
@@ -12,9 +19,12 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
@@ -95,6 +105,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     // Declare magnifyingGlassNode and modelRenderable
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
+    // Display the cropped bitmap in the ImageView for debugging
+    private lateinit var croppedImageView: ImageView
 
     private var isTextRecognitionActive = false
 
@@ -167,6 +179,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
 
+        // Initialize croppedImageView
+        croppedImageView = view.findViewById(R.id.croppedImageView)
+
         // Load the 3D model
         ModelRenderable.builder()
             .setSource(context, Uri.parse("file:///android_asset/models/realmagnifying.glb"))
@@ -181,11 +196,20 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private fun showMagnifyingGlass() {
         equip.start()
-        if (magnifyingGlassNode == null) {
+        croppedImageView.visibility = View.VISIBLE
+        croppedImageView.scaleType = ImageView.ScaleType.CENTER_CROP
+        croppedImageView.layoutParams = FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+            topMargin = 700 // Adjust this value to move up(decrease) or down (increase)
+        }
 
+        if (magnifyingGlassNode == null) {
             magnifyingGlassNode = Node().apply {
                 setParent(arFragment.arSceneView.scene.camera)
-                localPosition = Vector3(0.0f, -0.1f, -0.3f) // Lower the magnifying glass by setting y to -0.1f
+                localPosition = Vector3(0.0f, -0.1f, -0.3f)
                 renderable = modelRenderable
             }
         } else {
@@ -193,9 +217,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
         magnifyingGlassNode?.isEnabled = true
     }
-
     private fun hideMagnifyingGlass() {
         unequip.start()
+        croppedImageView.visibility = View.GONE
         magnifyingGlassNode?.setParent(null)
         magnifyingGlassNode?.isEnabled = false
     }
@@ -234,9 +258,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 try {
                     val image = frame.acquireCameraImage()
                     if (image != null) {
-                        val croppedImage = cropToViewfinder(image)
-                        textRecognizer.process(croppedImage)
+                        val (croppedImage, croppedBitmap) = cropToViewfinder(image)
 
+                        croppedImageView?.setImageBitmap(croppedBitmap)
+                      /*  croppedImageView?.visibility ?:  = View.VISIBLE*/
+
+                        textRecognizer.process(croppedImage)
                             .addOnSuccessListener { visionText ->
                                 val recognizedText = visionText.text.lowercase()
                                 for (modelName in recognizableModelNames) {
@@ -287,21 +314,41 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
 
-    private fun cropToViewfinder(image: Image): InputImage {
+    private fun cropToViewfinder(image: Image): Pair<InputImage, Bitmap> {
         val bitmap = MediaImageToBitmapHelper.convert(image)
 
         val width = bitmap.width
         val height = bitmap.height
-        val radius = Math.min(width, height) / 4
+        val radius = Math.min(width, height) / 2
 
+        // Adjust the center position to match the magnifying glass's position
         val centerX = width / 2
-        val centerY = height / 2
+        val centerY = (height / 2) - (height * 0.5).toInt() // Move the crop region further up
+
         val left = (centerX - radius).coerceAtLeast(0)
         val top = (centerY - radius).coerceAtLeast(0)
         val size = (radius * 2).coerceAtMost(width - left)
 
-        val croppedBitmap = Bitmap.createBitmap(bitmap, left, top, size, size)
-        return InputImage.fromBitmap(croppedBitmap, 0)
+        var croppedBitmap = Bitmap.createBitmap(bitmap, left, top, size, size)
+
+        // Rotate the bitmap if it is in landscape mode
+        if (width > height) {
+            val matrix = Matrix().apply { postRotate(90f) }
+            croppedBitmap = Bitmap.createBitmap(croppedBitmap, 0, 0, croppedBitmap.width, croppedBitmap.height, matrix, true)
+        }
+
+        // Create a circular bitmap
+        val circularBitmap = Bitmap.createBitmap(croppedBitmap.width, croppedBitmap.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(circularBitmap)
+        val paint = Paint().apply { isAntiAlias = true }
+        val rect = Rect(0, 0, croppedBitmap.width, croppedBitmap.height)
+        val rectF = RectF(rect)
+        canvas.drawOval(rectF, paint)
+        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
+        canvas.drawBitmap(croppedBitmap, rect, rect, paint)
+
+        val inputImage = InputImage.fromBitmap(circularBitmap, 0)
+        return Pair(inputImage, circularBitmap)
     }
 
 
