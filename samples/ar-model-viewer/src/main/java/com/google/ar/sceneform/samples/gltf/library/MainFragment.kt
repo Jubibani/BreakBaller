@@ -75,6 +75,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
     private lateinit var riser: MediaPlayer
+    private lateinit var equip: MediaPlayer
+    private lateinit var unequip: MediaPlayer
 
     private var pingJob: Job? = null
     private var lastPingTime = 0L
@@ -123,6 +125,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
         riser = MediaPlayer.create(context, R.raw.riser)
+        equip = MediaPlayer.create(context, R.raw.equip)
+        unequip = MediaPlayer.create(context, R.raw.unequip)
 
         // Initialize views
         infoButton = view.findViewById(R.id.infoButton)
@@ -173,7 +177,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
     private fun showMagnifyingGlass() {
+        equip.start()
         if (magnifyingGlassNode == null) {
+
             magnifyingGlassNode = Node().apply {
                 setParent(arFragment.arSceneView.scene.camera)
                 localPosition = Vector3(0.0f, -0.1f, -0.3f) // Lower the magnifying glass by setting y to -0.1f
@@ -186,6 +192,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
     private fun hideMagnifyingGlass() {
+        unequip.start()
         magnifyingGlassNode?.setParent(null)
         magnifyingGlassNode?.isEnabled = false
     }
@@ -234,6 +241,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                                         //start sound
                                         riser.start()
                                         //when sound is done, run the code block within
+
                                         riser.setOnCompletionListener{
                                             if (!isModelPlaced) {
                                                 vibrate()
@@ -438,5 +446,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         on.release()
         off.release()
         riser.release()
+        equip.release()
+        unequip.release()
     }
 }
