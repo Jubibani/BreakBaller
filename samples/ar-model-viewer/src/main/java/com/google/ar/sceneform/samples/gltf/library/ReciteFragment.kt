@@ -47,6 +47,7 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import com.yalantis.ucrop.UCrop
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 
 class ReciteFragment : Fragment() {
     private lateinit var cameraHelper: CameraHelper
@@ -108,11 +109,11 @@ class ReciteFragment : Fragment() {
         // Check if the model is initialized
         if (voskSpeechRecognitionHelper.isModelInitialized()) {
             // Start listening
-            voskSpeechRecognitionHelper.startListening()
+            startListeningWithPermissionCheck()
         } else {
             // Set a callback to start listening once the model is initialized
             voskSpeechRecognitionHelper.setModelInitializedCallback {
-                voskSpeechRecognitionHelper.startListening()
+                startListeningWithPermissionCheck()
             }
         }
 
@@ -171,6 +172,19 @@ class ReciteFragment : Fragment() {
         } catch (e: Exception) {
             Log.e("ReciteFragment", "Unexpected error: ${e.message}")
             Toast.makeText(context, "Unexpected error: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun startListeningWithPermissionCheck() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            try {
+                voskSpeechRecognitionHelper.startListening()
+            } catch (e: IOException) {
+                Log.e("ReciteFragment", "Failed to initialize recorder. Microphone might be already in use.", e)
+                Toast.makeText(context, "Failed to initialize recorder. Microphone might be already in use.", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            requestPermissions()
         }
     }
 
