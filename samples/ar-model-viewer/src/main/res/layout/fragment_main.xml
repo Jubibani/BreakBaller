@@ -85,5 +85,6 @@
         android:layout_marginBottom="16dp"
         android:background="@drawable/premium_button_background"
         android:src="@drawable/search"
-        />
+    />
+
 </FrameLayout>

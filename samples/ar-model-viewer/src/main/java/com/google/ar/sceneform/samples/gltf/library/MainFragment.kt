@@ -242,7 +242,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 1000 // Process at most every second
+        val minProcessingIntervalMs = 10 // Process at most every second [original value was 1000]
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
             if (!isTextRecognitionActive) return@addOnUpdateListener
