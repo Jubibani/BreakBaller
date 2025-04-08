@@ -9,6 +9,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -46,6 +47,7 @@ class LibraryFragment : Fragment() {
 
     private lateinit var refreshButton: FloatingActionButton
     private lateinit var refreshSound: MediaPlayer
+    private lateinit var magnifyingGlassButton: ImageButton
 
     private var anchorNode: AnchorNode? = null
 
@@ -62,9 +64,11 @@ class LibraryFragment : Fragment() {
         arFragment = childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment
 
         infoButton = view.findViewById(R.id.infoButton)
+        magnifyingGlassButton = view.findViewById(R.id.magnifyingGlassButton)
 
         refreshButton = view.findViewById(R.id.refreshButton)
         refreshSound = MediaPlayer.create(requireContext(), R.raw.refresh)
+
 
 
         refreshButton = view.findViewById(R.id.refreshButton)
@@ -77,6 +81,7 @@ class LibraryFragment : Fragment() {
         // Initially hide the buttons
         refreshButton.visibility = View.GONE
         backButton.visibility = View.GONE
+        magnifyingGlassButton.visibility = View.GONE
 
 
         // Delay the appearance of the back button

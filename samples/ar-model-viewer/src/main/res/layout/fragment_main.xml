@@ -30,6 +30,13 @@
         app:tint="@android:color/white"
         android:visibility="visible" />
 
+    <!--Magnifying glass preview-->
+    <ImageView
+        android:id="@+id/croppedImageView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone" />
+
     <!-- Info Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/infoButton"
@@ -78,5 +85,6 @@
         android:layout_marginBottom="16dp"
         android:background="@drawable/premium_button_background"
         android:src="@drawable/search"
-        />
+    />
+
 </FrameLayout>

@@ -4,6 +4,8 @@ import LibraryFragment
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.view.View.GONE
+import android.widget.ImageButton
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -48,9 +50,9 @@ class LibraryActivity : FragmentActivity() {
     private lateinit var flipSound: MediaPlayer
 
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         backSound = MediaPlayer.create(this, R.raw.back)
         flipSound = MediaPlayer.create(this, R.raw.flip)
 
