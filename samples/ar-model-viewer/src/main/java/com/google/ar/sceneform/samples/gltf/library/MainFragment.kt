@@ -77,6 +77,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val modelViews = mutableMapOf<String, ViewRenderable?>()
     private val modelInfoMap = mutableMapOf<String, ModelEntity>()  // Store fetched models
 
+
     // Instead of lateinit, initialize LiveData properly
     private val modelLiveData: LiveData<List<ModelEntity>> by lazy {
         AppDatabase.getDatabase(requireContext(), lifecycleScope).modelDao().getAllModels()
@@ -107,6 +108,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var modelRenderable: ModelRenderable? = null
     // Display the cropped bitmap in the ImageView for debugging
     private lateinit var croppedImageView: ImageView
+
 
     private var isTextRecognitionActive = false
 
@@ -197,6 +199,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun showMagnifyingGlass() {
         equip.start()
         croppedImageView.visibility = View.VISIBLE
+
         croppedImageView.scaleType = ImageView.ScaleType.CENTER_CROP
         croppedImageView.layoutParams = FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -205,6 +208,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
             topMargin = 700 // Adjust this value to move up(decrease) or down (increase)
         }
+
 
         if (magnifyingGlassNode == null) {
             magnifyingGlassNode = Node().apply {
@@ -220,6 +224,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private fun hideMagnifyingGlass() {
         unequip.start()
         croppedImageView.visibility = View.GONE
+
         magnifyingGlassNode?.setParent(null)
         magnifyingGlassNode?.isEnabled = false
     }
@@ -261,7 +266,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                         val (croppedImage, croppedBitmap) = cropToViewfinder(image)
 
                         croppedImageView?.setImageBitmap(croppedBitmap)
-                      /*  croppedImageView?.visibility ?:  = View.VISIBLE*/
 
                         textRecognizer.process(croppedImage)
                             .addOnSuccessListener { visionText ->
@@ -319,33 +323,39 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         val width = bitmap.width
         val height = bitmap.height
-        val radius = Math.min(width, height) / 2
 
-        // Adjust the center position to match the magnifying glass's position
+        // Define zoom factor ( 6.0 means 6x zoom)
+        val zoomFactor = 6.0f
+
+        // Crop a smaller region from center to simulate zoom
+        val cropSize = (Math.min(width, height) / zoomFactor).toInt()
         val centerX = width / 2
-        val centerY = (height / 2) - (height * 0.5).toInt() // Move the crop region further up
+        val centerY = height / 2
+        val left = (centerX - cropSize / 2).coerceAtLeast(0)
+        val top = (centerY - cropSize / 2).coerceAtLeast(0)
 
-        val left = (centerX - radius).coerceAtLeast(0)
-        val top = (centerY - radius).coerceAtLeast(0)
-        val size = (radius * 2).coerceAtMost(width - left)
+        var croppedBitmap = Bitmap.createBitmap(bitmap, left, top, cropSize, cropSize)
 
-        var croppedBitmap = Bitmap.createBitmap(bitmap, left, top, size, size)
+        // Scale it up to simulate zoom
+        val zoomedBitmap = Bitmap.createScaledBitmap(croppedBitmap, cropSize * zoomFactor.toInt(), cropSize * zoomFactor.toInt(), true)
 
-        // Rotate the bitmap if it is in landscape mode
-        if (width > height) {
-            val matrix = Matrix().apply { postRotate(90f) }
-            croppedBitmap = Bitmap.createBitmap(croppedBitmap, 0, 0, croppedBitmap.width, croppedBitmap.height, matrix, true)
-        }
+        // Rotate after scaling
+        val matrix = Matrix().apply { postRotate(90f) }
+        val rotatedZoomedBitmap = Bitmap.createBitmap(
+            zoomedBitmap, 0, 0,
+            zoomedBitmap.width, zoomedBitmap.height,
+            matrix, true
+        )
 
-        // Create a circular bitmap
-        val circularBitmap = Bitmap.createBitmap(croppedBitmap.width, croppedBitmap.height, Bitmap.Config.ARGB_8888)
+        // Optional: mask into a circular preview
+        val circularBitmap = Bitmap.createBitmap(rotatedZoomedBitmap.width, rotatedZoomedBitmap.height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(circularBitmap)
         val paint = Paint().apply { isAntiAlias = true }
-        val rect = Rect(0, 0, croppedBitmap.width, croppedBitmap.height)
+        val rect = Rect(0, 0, rotatedZoomedBitmap.width, rotatedZoomedBitmap.height)
         val rectF = RectF(rect)
         canvas.drawOval(rectF, paint)
         paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(croppedBitmap, rect, rect, paint)
+        canvas.drawBitmap(rotatedZoomedBitmap, rect, rect, paint)
 
         val inputImage = InputImage.fromBitmap(circularBitmap, 0)
         return Pair(inputImage, circularBitmap)

@@ -37,6 +37,7 @@
         android:layout_height="wrap_content"
         android:visibility="gone" />
 
+
     <!-- Info Button -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/infoButton"
