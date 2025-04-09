@@ -107,6 +107,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     // Declare magnifyingGlassNode and modelRenderable
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
+    private lateinit var magnifyingGlassButton: ImageButton
     // Display the cropped bitmap in the ImageView for debugging
     private lateinit var croppedImageView: ImageView
 
@@ -114,6 +115,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var isTextRecognitionActive = false
     private var isRecognitionCancelled = false
     private var isRiserCancelled = false
+    private var hasPlaneBeenDetectedOnce = false
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -151,9 +153,17 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         // Initialize views
         infoButton = view.findViewById(R.id.infoButton)
+        magnifyingGlassButton = view.findViewById(R.id.magnifyingGlassButton)
+        restartButton = view.findViewById(R.id.refreshButton)
+
+        // Set buttons to be hidden by default
+        magnifyingGlassButton.visibility = View.GONE
+        restartButton.visibility = View.GONE
+
         infoButton.setOnClickListener {
             toggleInfoVisibility()
         }
+
 
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
@@ -162,11 +172,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             setOnViewCreatedListener { arSceneView ->
                 arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL)
                 setupTextRecognition(arSceneView)
+
+                checkDetectedPLaneForEntry()
             }
         }
 
         // Magnifying glass button
-        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)
+/*        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)*/
         magnifyingGlassButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -183,6 +195,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 }
                 else -> false
             }
+
+
         }
 
         // Initialize croppedImageView
@@ -198,9 +212,32 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 Log.e("MainFragment", "Unable to load Renderable.", throwable)
                 null
             }
+
     }
 
+    private fun checkDetectedPLaneForEntry() {
 
+        arSceneView.scene.addOnUpdateListener {
+            if (hasPlaneBeenDetectedOnce) return@addOnUpdateListener  // Do nothing if already triggered once
+
+            startRepeatingPing()
+
+            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            val planes = frame.getUpdatedTrackables(Plane::class.java)
+
+            val isPlaneDetected = planes.any { it.trackingState == TrackingState.TRACKING }
+
+            if (isPlaneDetected) {
+                hasPlaneBeenDetectedOnce = true  // Set flag so this block never runs again
+
+                stopRepeatingPing()
+                magnifyingGlassButton.visibility = View.VISIBLE
+                restartButton.visibility = View.VISIBLE
+
+                Log.d("MainFragment", "Plane detected for the first time – buttons are now visible.")
+            }
+        }
+    }
     private fun showMagnifyingGlass() {
         equip.start()
         croppedImageView.visibility = View.VISIBLE
