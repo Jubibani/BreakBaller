@@ -274,26 +274,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     val (croppedImage, croppedBitmap) = cropToViewfinder(image)
                     croppedImageView.setImageBitmap(croppedBitmap)
 
-                    // Ensure MediaPlayer is in a valid state before calling its methods
-                    if (::riser.isInitialized) {
-                        try {
-                            if (isRecognitionCancelled) {
-                                isRiserCancelled = true
-                                if (riser.isPlaying) {
-                                    riser.stop()
-                                }
-                                riser.release()
-                                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
-                                return@launch
-                            }
-                        } catch (e: IllegalStateException) {
-                            Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
-                            riser.release()
-                            riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
-                            return@launch
-                        }
-                    }
-
                     textRecognizer.process(croppedImage)
                         .addOnSuccessListener { visionText ->
                             val recognizedText = visionText.text.lowercase()
@@ -302,52 +282,15 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
                                     // Monitor cancellation during riser playback
                                     if (isRecognitionCancelled) {
-                                        isRiserCancelled = true
-                                        showToast("recognition recognition set to true")
-                                        if (::riser.isInitialized) {
-                                            try {
-                                                if (riser.isPlaying) {
-                                                    riser.stop()
-                                                }
-                                                powerdown.start()
-                                                riser.release()
-                                                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
-                                            } catch (e: IllegalStateException) {
-                                                Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
-                                            }
-                                        }
+                                        cancelTextRecognition()
                                         return@addOnSuccessListener
                                     }
-
                                     // Start playing the riser sound
-                                    if (::riser.isInitialized) {
-                                        try {
-                                            riser.start()
-                                        } catch (e: IllegalStateException) {
-                                            Log.e("TextRecognition", "Failed to start MediaPlayer.", e)
-                                            riser.release()
-                                            riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
-                                        }
-                                    }
-
+                                    riserSound()
                                     riser.setOnCompletionListener {
-                                        if (isRiserCancelled) {
-                                            showToast("riser recognition cancelled")
-                                            if (::riser.isInitialized) {
-                                                try {
-                                                    if (riser.isPlaying) {
-                                                        riser.stop()
-                                                    }
-                                                    riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
-                                                } catch (e: IllegalStateException) {
-                                                    Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
-                                                }
-                                            }
-                                            return@setOnCompletionListener
-                                        }
-
 
                                         if (!isModelPlaced) {
+                                            powerdown.release()
                                             vibrate()
                                             startRepeatingPing() // Start repeating ping
                                             if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
@@ -419,6 +362,23 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
+    private fun cancelTextRecognition(){
+        isRiserCancelled = true
+        if (::riser.isInitialized) {
+            try {
+                if (riser.isPlaying) {
+                    riser.stop()
+                }
+                if (!isModelPlaced) {
+                    powerdown.start()
+                }
+                riser.release()
+                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
+            } catch (e: IllegalStateException) {
+                Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
+            }
+        }
+    }
 
     private fun cropToViewfinder(image: Image): Pair<InputImage, Bitmap> {
         val bitmap = MediaImageToBitmapHelper.convert(image)
@@ -604,6 +564,17 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         off.start()
     }
 
+    private fun riserSound(){
+        if (::riser.isInitialized) {
+            try {
+                riser.start()
+            } catch (e: IllegalStateException) {
+                Log.e("TextRecognition", "Failed to start MediaPlayer.", e)
+                riser.release()
+                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
+            }
+        }
+    }
     private fun unloadModels() {
         models.clear()
         modelViews.clear()
