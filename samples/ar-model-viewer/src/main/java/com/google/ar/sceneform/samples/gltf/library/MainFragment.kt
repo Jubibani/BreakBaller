@@ -89,6 +89,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var on: MediaPlayer
     private lateinit var off: MediaPlayer
     private lateinit var riser: MediaPlayer
+    private lateinit var powerdown: MediaPlayer
     private lateinit var equip: MediaPlayer
     private lateinit var unequip: MediaPlayer
 
@@ -109,8 +110,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     // Display the cropped bitmap in the ImageView for debugging
     private lateinit var croppedImageView: ImageView
 
-
+    //flags
     private var isTextRecognitionActive = false
+    private var isRecognitionCancelled = false
+    private var isRiserCancelled = false
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -142,6 +145,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         on = MediaPlayer.create(context, R.raw.on)
         off = MediaPlayer.create(context, R.raw.off)
         riser = MediaPlayer.create(context, R.raw.riser)
+        powerdown = MediaPlayer.create(context, R.raw.powerdown)
         equip = MediaPlayer.create(context, R.raw.equip)
         unequip = MediaPlayer.create(context, R.raw.unequip)
 
@@ -196,6 +200,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
     }
 
+
     private fun showMagnifyingGlass() {
         equip.start()
         croppedImageView.visibility = View.VISIBLE
@@ -222,11 +227,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         magnifyingGlassNode?.isEnabled = true
     }
     private fun hideMagnifyingGlass() {
+        resetTextRecognition()
         unequip.start()
         croppedImageView.visibility = View.GONE
 
         magnifyingGlassNode?.setParent(null)
         magnifyingGlassNode?.isEnabled = false
+
     }
 
     private fun preloadModels() {
@@ -244,13 +251,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
+
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 10 // Process at most every second [original value was 1000]
+        val minProcessingIntervalMs = 10 // Process at most every second
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
-            if (!isTextRecognitionActive) return@addOnUpdateListener
+            if (!isTextRecognitionActive || isRecognitionCancelled) return@addOnUpdateListener
 
             val currentTimeMs = System.currentTimeMillis()
             if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
@@ -260,47 +268,58 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             val frame = arSceneView.arFrame ?: return@addOnUpdateListener
 
             lifecycleScope.launch {
+
                 try {
                     val image = frame.acquireCameraImage()
-                    if (image != null) {
-                        val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                    val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                    croppedImageView.setImageBitmap(croppedBitmap)
 
-                        croppedImageView?.setImageBitmap(croppedBitmap)
+                    textRecognizer.process(croppedImage)
+                        .addOnSuccessListener { visionText ->
+                            val recognizedText = visionText.text.lowercase()
+                            for (modelName in recognizableModelNames) {
+                                if (recognizedText.contains(modelName.lowercase())) {
 
-                        textRecognizer.process(croppedImage)
-                            .addOnSuccessListener { visionText ->
-                                val recognizedText = visionText.text.lowercase()
-                                for (modelName in recognizableModelNames) {
-                                    if (recognizedText.contains(modelName.lowercase())) {
-                                        // Start playing the riser sound
-                                        riser.start()
-                                        riser.setOnCompletionListener {
-                                            if (!isModelPlaced) {
-                                                vibrate()
-                                                startRepeatingPing() // Start repeating ping
-                                                if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
-                                                    showToast("'$modelName' detected! Find a Surface to Render the model.")
-                                                    Log.d("TextRecognition", "Model detected: $modelName")
-                                                    lastToastTime = currentTimeMs
-                                                }
-                                                hideMagnifyingGlass()
-                                                view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
+                                    // Monitor cancellation during riser playback
+                                    if (isRecognitionCancelled) {
+                                        cancelTextRecognition()
+                                        return@addOnSuccessListener
+                                    }
+                                    // Start playing the riser sound
+                                    riserSound()
+                                    riser.setOnCompletionListener {
 
-                                                renderModelOnSurface(modelName)
+                                        if (!isModelPlaced) {
+                                            powerdown.release()
+                                            vibrate()
+                                            startRepeatingPing() // Start repeating ping
+                                            if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
+                                                showToast("'$modelName' detected! Find a Surface to Render the model.")
+                                                Log.d(
+                                                    "TextRecognition",
+                                                    "Model detected: $modelName"
+                                                )
+                                                lastToastTime = currentTimeMs
                                             }
+                                            hideMagnifyingGlass()
+                                            view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility =
+                                                View.GONE
+                                            renderModelOnSurface(modelName)
+
+                                            return@setOnCompletionListener
                                         }
-                                        break
                                     }
                                 }
                             }
-                            .addOnFailureListener { exception ->
-                                Log.e("TextRecognition", "Text recognition failed", exception)
-                            }
-                            .addOnCompleteListener {
-                                image.close()
-                            }
-                        lastProcessingTimeMs = currentTimeMs
-                    }
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.e("TextRecognition", "Text recognition failed", exception)
+                        }
+                        .addOnCompleteListener {
+                            image.close()
+                        }
+
+                    lastProcessingTimeMs = currentTimeMs
                 } catch (e: Exception) {
                     Log.e("TextRecognition", "Error processing frame", e)
                 }
@@ -317,6 +336,49 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         isTextRecognitionActive = false
     }
 
+    private fun resetTextRecognition() {
+        isRecognitionCancelled = true
+        isRiserCancelled = true
+
+        if (::riser.isInitialized) {
+            try {
+                if (riser.isPlaying) {
+                    riser.stop()
+                }
+            } catch (e: IllegalStateException) {
+                Log.e("MainFragment", "MediaPlayer is in an invalid state during reset.", e)
+            }
+            riser.release()
+        }
+
+        // Reinitialize the MediaPlayer for future use
+        riser = MediaPlayer.create(context, R.raw.riser)
+
+        // Reset flags back to false after a short delay
+        lifecycleScope.launch {
+            delay(500) // Adjust delay as needed
+            isRecognitionCancelled = false
+            isRiserCancelled = false
+        }
+    }
+
+    private fun cancelTextRecognition(){
+        isRiserCancelled = true
+        if (::riser.isInitialized) {
+            try {
+                if (riser.isPlaying) {
+                    riser.stop()
+                }
+                if (!isModelPlaced) {
+                    powerdown.start()
+                }
+                riser.release()
+                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
+            } catch (e: IllegalStateException) {
+                Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
+            }
+        }
+    }
 
     private fun cropToViewfinder(image: Image): Pair<InputImage, Bitmap> {
         val bitmap = MediaImageToBitmapHelper.convert(image)
@@ -502,6 +564,17 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         off.start()
     }
 
+    private fun riserSound(){
+        if (::riser.isInitialized) {
+            try {
+                riser.start()
+            } catch (e: IllegalStateException) {
+                Log.e("TextRecognition", "Failed to start MediaPlayer.", e)
+                riser.release()
+                riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
+            }
+        }
+    }
     private fun unloadModels() {
         models.clear()
         modelViews.clear()
@@ -522,7 +595,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         on.release()
         off.release()
         riser.release()
+        powerdown.release()
         equip.release()
         unequip.release()
     }
+
+
 }
