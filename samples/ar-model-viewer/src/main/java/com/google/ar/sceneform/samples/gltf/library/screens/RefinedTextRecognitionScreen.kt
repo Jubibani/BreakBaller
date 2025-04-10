@@ -6,6 +6,7 @@ import android.util.Log
 import android.util.Size
 import android.view.MotionEvent
 import android.widget.Toast
+import androidx.annotation.OptIn
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
@@ -65,7 +66,7 @@ fun RefinedTextRecognitionScreen() {
     }
 }
 
-@Composable
+@OptIn(ExperimentalGetImage::class) @Composable
 fun CameraPreview(
     lifecycleOwner: LifecycleOwner,
     cameraExecutor: ExecutorService,
