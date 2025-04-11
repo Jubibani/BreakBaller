@@ -1,5 +1,6 @@
 package com.google.ar.sceneform.samples.gltf.library
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.view.View
@@ -15,21 +16,37 @@ class HighlightOverlayView(context: Context) : View(context) {
     }
     var recognizableModelNames: List<String> = emptyList()
 
-    fun updateTextResult(result: Text) {
+    // Image dimensions (set these when processing the image)
+    var imageWidth: Int = 0
+    var imageHeight: Int = 0
+
+    fun updateTextResult(result: Text, imageWidth: Int, imageHeight: Int) {
         textResult = result
+        this.imageWidth = imageWidth
+        this.imageHeight = imageHeight
         invalidate() // Request a redraw of the view
     }
 
+    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+
         textResult?.let { result ->
+            val scaleX = width.toFloat() / imageWidth
+            val scaleY = height.toFloat() / imageHeight
+
             for (block in result.textBlocks) {
                 for (line in block.lines) {
                     if (recognizableModelNames.contains(line.text)) {
                         line.boundingBox?.let { box ->
-                            // Need to map the bounding box to the view's coordinates
-                            // This is a simplified example and might need adjustments
-                            canvas.drawRect(box, paint)
+                            // Map the bounding box to the view's coordinates
+                            val mappedBox = RectF(
+                                box.left * scaleX,
+                                box.top * scaleY,
+                                box.right * scaleX,
+                                box.bottom * scaleY
+                            )
+                            canvas.drawRect(mappedBox, paint)
                         }
                     }
                 }

@@ -58,6 +58,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import com.google.ar.sceneform.samples.gltf.library.HighlightOverlayView
+import com.google.mlkit.vision.text.Text
 
 class MainFragment : Fragment(R.layout.fragment_main) {
 
@@ -76,7 +78,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val models = mutableMapOf<String, Renderable?>()
     private val modelViews = mutableMapOf<String, ViewRenderable?>()
     private val modelInfoMap = mutableMapOf<String, ModelEntity>()  // Store fetched models
-
+    private lateinit var highlightOverlayView: HighlightOverlayView
 
     // Instead of lateinit, initialize LiveData properly
     private val modelLiveData: LiveData<List<ModelEntity>> by lazy {
@@ -107,6 +109,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     // Declare magnifyingGlassNode and modelRenderable
     private var magnifyingGlassNode: Node? = null
     private var modelRenderable: ModelRenderable? = null
+    private lateinit var magnifyingGlassButton: ImageButton
     // Display the cropped bitmap in the ImageView for debugging
     private lateinit var croppedImageView: ImageView
 
@@ -114,6 +117,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var isTextRecognitionActive = false
     private var isRecognitionCancelled = false
     private var isRiserCancelled = false
+    private var hasPlaneBeenDetectedOnce = false
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -151,9 +155,24 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         // Initialize views
         infoButton = view.findViewById(R.id.infoButton)
+        magnifyingGlassButton = view.findViewById(R.id.magnifyingGlassButton)
+        restartButton = view.findViewById(R.id.refreshButton)
+
+        // Initialize HighlightOverlayView
+        highlightOverlayView = HighlightOverlayView(requireContext())
+
+        // Add HighlightOverlayView to the root FrameLayout
+        val rootLayout = view as FrameLayout
+        rootLayout.addView(highlightOverlayView)
+
+        // Set buttons to be hidden by default
+        magnifyingGlassButton.visibility = View.GONE
+        restartButton.visibility = View.GONE
+
         infoButton.setOnClickListener {
             toggleInfoVisibility()
         }
+
 
         arFragment = (childFragmentManager.findFragmentById(R.id.arFragment) as ArFragment).apply {
             setOnSessionConfigurationListener { session, config ->
@@ -162,11 +181,18 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             setOnViewCreatedListener { arSceneView ->
                 arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL)
                 setupTextRecognition(arSceneView)
+
+                checkDetectedPLaneForEntry()
+                setupRecognizableModelNames()
+
+
+    /*            // Add text recognition and highlighting
+                performTextRecognitionAndHighlight(arSceneView)*/
             }
         }
 
         // Magnifying glass button
-        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)
+/*        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)*/
         magnifyingGlassButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -183,6 +209,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 }
                 else -> false
             }
+
+
         }
 
         // Initialize croppedImageView
@@ -198,8 +226,78 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 Log.e("MainFragment", "Unable to load Renderable.", throwable)
                 null
             }
+
     }
 
+/*    private fun checkDetectedPLaneForEntry() {
+
+        arSceneView.scene.addOnUpdateListener {
+            if (hasPlaneBeenDetectedOnce) return@addOnUpdateListener  // Do nothing if already triggered once
+
+            startRepeatingPing()
+
+            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            val planes = frame.getUpdatedTrackables(Plane::class.java)
+
+            val isPlaneDetected = planes.any { it.trackingState == TrackingState.TRACKING }
+
+            if (isPlaneDetected) {
+                hasPlaneBeenDetectedOnce = true  // Set flag so this block never runs again
+
+                stopRepeatingPing()
+                magnifyingGlassButton.visibility = View.VISIBLE
+                restartButton.visibility = View.VISIBLE
+
+                Log.d("MainFragment", "Plane detected for the first time – buttons are now visible.")
+            }
+        }
+    }*/
+
+    private var lastTextResult: Text? = null
+    private var lastImageWidth: Int = 0
+    private var lastImageHeight: Int = 0
+
+    private fun checkDetectedPLaneForEntry() {
+        arSceneView.scene.addOnUpdateListener {
+            if (hasPlaneBeenDetectedOnce) return@addOnUpdateListener  // Do nothing if already triggered once
+
+            startRepeatingPing()
+
+            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            val planes = frame.getUpdatedTrackables(Plane::class.java)
+
+            val isPlaneDetected = planes.any { it.trackingState == TrackingState.TRACKING }
+
+            if (isPlaneDetected) {
+                hasPlaneBeenDetectedOnce = true  // Set flag so this block never runs again
+
+                stopRepeatingPing()
+
+                // Ensure the text recognition result is available
+                if (lastTextResult != null) {
+                    processTextRecognitionResult(lastTextResult!!, lastImageWidth, lastImageHeight)
+                }
+
+                magnifyingGlassButton.visibility = View.VISIBLE
+                restartButton.visibility = View.VISIBLE
+
+                Log.d("MainFragment", "Plane detected for the first time – buttons are now visible.")
+            }
+        }
+    }
+
+    private fun setupRecognizableModelNames() {
+        val modelDao = AppDatabase.getDatabase(requireContext(), CoroutineScope(Dispatchers.IO)).modelDao()
+
+        // Observe the model names from the database
+        modelDao.getAllModelNames().observe(viewLifecycleOwner) { modelNames ->
+            // Update recognizableModelNames in HighlightOverlayView or other components
+            highlightOverlayView.recognizableModelNames = modelNames
+        }
+    }
+    private fun processTextRecognitionResult(result: Text, imageWidth: Int, imageHeight: Int) {
+        highlightOverlayView.updateTextResult(result, imageWidth, imageHeight)
+    }
 
     private fun showMagnifyingGlass() {
         equip.start()
@@ -251,8 +349,35 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
+    private fun performTextRecognitionAndHighlight(arSceneView: ArSceneView) {
+        // Start text recognition and highlighting immediately when the fragment is opened
+        arSceneView.scene.addOnUpdateListener {
+            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            try {
+                val image = frame.acquireCameraImage()
+                val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                croppedImageView.setImageBitmap(croppedBitmap)
 
-    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+                // Process the image for text recognition and highlight
+                textRecognizer.process(croppedImage)
+                    .addOnSuccessListener { visionText ->
+                        // Highlight recognized text
+                        processTextRecognitionResult(visionText, croppedBitmap.width, croppedBitmap.height)
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e("TextRecognition", "Text recognition failed", exception)
+                    }
+                    .addOnCompleteListener {
+                        image.close()
+                    }
+            } catch (e: Exception) {
+                Log.e("TextRecognition", "Error processing frame", e)
+            }
+        }
+    }
+
+
+ /*   @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
         val minProcessingIntervalMs = 10 // Process at most every second
@@ -276,6 +401,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
                     textRecognizer.process(croppedImage)
                         .addOnSuccessListener { visionText ->
+
                             val recognizedText = visionText.text.lowercase()
                             for (modelName in recognizableModelNames) {
                                 if (recognizedText.contains(modelName.lowercase())) {
@@ -326,6 +452,79 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
     }
+*/
+
+    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+    private fun setupTextRecognition(arSceneView: ArSceneView) {
+        var lastProcessingTimeMs = 0L
+        val minProcessingIntervalMs = 10 // Process at most every second
+
+        arSceneView.scene.addOnUpdateListener { frameTime ->
+            if (!isTextRecognitionActive || isRecognitionCancelled) return@addOnUpdateListener
+
+            val currentTimeMs = System.currentTimeMillis()
+            if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
+                return@addOnUpdateListener
+            }
+
+            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+
+            lifecycleScope.launch {
+                try {
+                    val image = frame.acquireCameraImage()
+                    val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                    croppedImageView.setImageBitmap(croppedBitmap)
+
+                    textRecognizer.process(croppedImage)
+                        .addOnSuccessListener { visionText ->
+                            val recognizedText = visionText.text.lowercase()
+                            for (modelName in recognizableModelNames) {
+                                if (recognizedText.contains(modelName.lowercase())) {
+                                    recognizeTextThenRenderModel(modelName, currentTimeMs)
+                                }
+                            }
+                        }
+                        .addOnFailureListener { exception ->
+                            Log.e("TextRecognition", "Text recognition failed", exception)
+                        }
+                        .addOnCompleteListener {
+                            image.close()
+                        }
+
+                    lastProcessingTimeMs = currentTimeMs
+                } catch (e: Exception) {
+                    Log.e("TextRecognition", "Error processing frame", e)
+                }
+            }
+        }
+    }
+
+    private fun recognizeTextThenRenderModel(modelName: String, currentTimeMs: Long) {
+        // Monitor cancellation during riser playback
+        if (isRecognitionCancelled) {
+            cancelTextRecognition()
+
+            return
+        }
+
+        // Start playing the riser sound
+        riserSound()
+        riser.setOnCompletionListener {
+            if (!isModelPlaced) {
+                powerdown.release()
+                vibrate()
+                startRepeatingPing() // Start repeating ping
+                if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
+                    showToast("'$modelName' detected! Find a Surface to Render the model.")
+                    Log.d("TextRecognition", "Model detected: $modelName")
+                    lastToastTime = currentTimeMs
+                }
+                hideMagnifyingGlass()
+                view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility = View.GONE
+                renderModelOnSurface(modelName)
+            }
+        }
+    }
 
 
     private fun startTextRecognition() {
@@ -371,6 +570,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 }
                 if (!isModelPlaced) {
                     powerdown.start()
+                    magnifyingGlassButton.visibility = View.GONE
+                    powerdown.setOnCompletionListener{
+                        magnifyingGlassButton.visibility = View.VISIBLE
+                    }
                 }
                 riser.release()
                 riser = MediaPlayer.create(context, R.raw.riser) // Reinitialize
