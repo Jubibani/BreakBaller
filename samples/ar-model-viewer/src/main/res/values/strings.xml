@@ -16,4 +16,7 @@
     <string name="status_ready">Ready</string>
     <string name="capture">Capture</string>
     <string name="imagepreview">ImagePreview</string>
+    <string name="cells_are_the_super_tiny_building_blocks_that_make_up_all_living_things_like_plants_animals_and_even_you_they_re_so_small_you_need_a_microscope_to_see_them">Cells are the super tiny building blocks that make up all living things, like plants, animals, and even you! They\'re so small you need a microscope to see them!</string>
+    <string name="biodiversity_is_all_the_different_kinds_of_life_plants_animals_and_everything_else_living_together_and_connected_in_their_environments">Biodiversity is all the different kinds of life – plants, animals, and everything else – living together and connected in their environments.</string>
+    <string name="an_organism_is_any_single_thing_that_is_alive_like_a_plant_an_animal_or_even_a_tiny_bug_you_can_barely_see_if_it_eats_grows_and_can_make_more_of_itself_it_s_an_organism">An organism is any single thing that is alive, like a plant, an animal, or even a tiny bug you can barely see! If it eats, grows, and can make more of itself, it\'s an organism.</string>
 </resources>

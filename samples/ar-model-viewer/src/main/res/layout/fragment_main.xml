@@ -88,4 +88,10 @@
         android:src="@drawable/search"
     />
 
+    <!-- Highlight Overlay -->
+    <com.google.ar.sceneform.samples.gltf.library.HighlightOverlayView
+        android:id="@+id/highlightOverlayView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
 </FrameLayout>

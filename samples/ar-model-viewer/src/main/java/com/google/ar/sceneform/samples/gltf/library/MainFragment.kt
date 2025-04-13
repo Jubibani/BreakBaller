@@ -26,9 +26,13 @@ import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.map
+import androidx.room.util.copy
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
@@ -60,6 +64,8 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import com.google.ar.sceneform.samples.gltf.library.HighlightOverlayView
 import com.google.mlkit.vision.text.Text
+import com.google.mlkit.vision.text.TextRecognizer
+import kotlinx.coroutines.withContext
 
 class MainFragment : Fragment(R.layout.fragment_main) {
 
@@ -67,8 +73,16 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val arSceneView get() = arFragment.arSceneView
     private val scene get() = arSceneView.scene
 
+    //for scan to text recognition then render
     private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
     private var isModelPlaced = false
+
+    //for scan to text recognition then display
+    private lateinit var showTextRecognizer: TextRecognizer
+    private lateinit var highlightOverlayView: HighlightOverlayView
+
+
+
     private var lastToastTime = 0L
     private val TOAST_COOLDOWN_MS = 20000 // 20 seconds cooldown
 
@@ -78,7 +92,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private val models = mutableMapOf<String, Renderable?>()
     private val modelViews = mutableMapOf<String, ViewRenderable?>()
     private val modelInfoMap = mutableMapOf<String, ModelEntity>()  // Store fetched models
-    private lateinit var highlightOverlayView: HighlightOverlayView
+
 
     // Instead of lateinit, initialize LiveData properly
     private val modelLiveData: LiveData<List<ModelEntity>> by lazy {
@@ -119,7 +133,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var isRiserCancelled = false
     private var hasPlaneBeenDetectedOnce = false
 
-    @SuppressLint("ClickableViewAccessibility")
+    @OptIn(ExperimentalGetImage::class) @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -180,19 +194,16 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
             setOnViewCreatedListener { arSceneView ->
                 arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL)
-                setupTextRecognition(arSceneView)
+                 setupTextRecognition(arSceneView)
 
                 checkDetectedPLaneForEntry()
                 setupRecognizableModelNames()
 
-
-    /*            // Add text recognition and highlighting
-                performTextRecognitionAndHighlight(arSceneView)*/
+     /*           highlightRecognizedWords(arSceneView, highlightOverlayView, textRecognizer)*/
             }
         }
 
         // Magnifying glass button
-/*        val magnifyingGlassButton: ImageButton = view.findViewById(R.id.magnifyingGlassButton)*/
         magnifyingGlassButton.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
@@ -229,29 +240,29 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     }
 
-/*    private fun checkDetectedPLaneForEntry() {
+    /*    private fun checkDetectedPLaneForEntry() {
 
-        arSceneView.scene.addOnUpdateListener {
-            if (hasPlaneBeenDetectedOnce) return@addOnUpdateListener  // Do nothing if already triggered once
+            arSceneView.scene.addOnUpdateListener {
+                if (hasPlaneBeenDetectedOnce) return@addOnUpdateListener  // Do nothing if already triggered once
 
-            startRepeatingPing()
+                startRepeatingPing()
 
-            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
-            val planes = frame.getUpdatedTrackables(Plane::class.java)
+                val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+                val planes = frame.getUpdatedTrackables(Plane::class.java)
 
-            val isPlaneDetected = planes.any { it.trackingState == TrackingState.TRACKING }
+                val isPlaneDetected = planes.any { it.trackingState == TrackingState.TRACKING }
 
-            if (isPlaneDetected) {
-                hasPlaneBeenDetectedOnce = true  // Set flag so this block never runs again
+                if (isPlaneDetected) {
+                    hasPlaneBeenDetectedOnce = true  // Set flag so this block never runs again
 
-                stopRepeatingPing()
-                magnifyingGlassButton.visibility = View.VISIBLE
-                restartButton.visibility = View.VISIBLE
+                    stopRepeatingPing()
+                    magnifyingGlassButton.visibility = View.VISIBLE
+                    restartButton.visibility = View.VISIBLE
 
-                Log.d("MainFragment", "Plane detected for the first time – buttons are now visible.")
+                    Log.d("MainFragment", "Plane detected for the first time – buttons are now visible.")
+                }
             }
-        }
-    }*/
+        }*/
 
     private var lastTextResult: Text? = null
     private var lastImageWidth: Int = 0
@@ -291,12 +302,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         // Observe the model names from the database
         modelDao.getAllModelNames().observe(viewLifecycleOwner) { modelNames ->
-            // Update recognizableModelNames in HighlightOverlayView or other components
-            highlightOverlayView.recognizableModelNames = modelNames
+            highlightOverlayView.recognizableModelNames = modelNames.map { it.lowercase() }.toSet()
+            Log.d("MainFragment", "Recognizable model names updated: $modelNames")
         }
     }
     private fun processTextRecognitionResult(result: Text, imageWidth: Int, imageHeight: Int) {
-        highlightOverlayView.updateTextResult(result, imageWidth, imageHeight)
+        // Pass the textBlocks from the result to updateTextResult
+        highlightOverlayView.updateTextResult(result.textBlocks, imageWidth, imageHeight)
     }
 
     private fun showMagnifyingGlass() {
@@ -324,6 +336,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
         magnifyingGlassNode?.isEnabled = true
     }
+
     private fun hideMagnifyingGlass() {
         resetTextRecognition()
         unequip.start()
@@ -349,115 +362,258 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-    private fun performTextRecognitionAndHighlight(arSceneView: ArSceneView) {
-        // Start text recognition and highlighting immediately when the fragment is opened
-        arSceneView.scene.addOnUpdateListener {
-            val frame = arSceneView.arFrame ?: return@addOnUpdateListener
-            try {
-                val image = frame.acquireCameraImage()
-                val (croppedImage, croppedBitmap) = cropToViewfinder(image)
-                croppedImageView.setImageBitmap(croppedBitmap)
+    /*    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+        private fun setupTextProcessingAndRendering(arSceneView: ArSceneView) {
+            var lastProcessingTimeMs = 0L
+            val minProcessingIntervalMs = 250 // Keep this for now, might adjust later
 
-                // Process the image for text recognition and highlight
-                textRecognizer.process(croppedImage)
-                    .addOnSuccessListener { visionText ->
-                        // Highlight recognized text
-                        processTextRecognitionResult(visionText, croppedBitmap.width, croppedBitmap.height)
-                    }
-                    .addOnFailureListener { exception ->
-                        Log.e("TextRecognition", "Text recognition failed", exception)
-                    }
-                    .addOnCompleteListener {
-                        image.close()
-                    }
-            } catch (e: Exception) {
-                Log.e("TextRecognition", "Error processing frame", e)
-            }
-        }
-    }
+            Log.d("TextProcessing", "Setting up combined listener...")
+
+            arSceneView.scene.addOnUpdateListener { frameTime ->
+                // --- MODIFIED CHECK ---
+                if (isRecognitionCancelled) {
+                    // Still good to clear if explicitly cancelled
+                    activity?.runOnUiThread { highlightOverlayView.clearOverlay() }
+                    return@addOnUpdateListener
+                }
+                val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+                if (frame.camera.trackingState != TrackingState.TRACKING) {
+                    // Optional: Clear if tracking lost, or just let it persist last view
+                    // activity?.runOnUiThread { highlightOverlayView.clearOverlay() } // Decide if you want this
+                    return@addOnUpdateListener
+                }
+                val currentTimeMs = System.currentTimeMillis()
+                if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
+                    return@addOnUpdateListener
+                }
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    val processingStartTime = System.nanoTime() // For Perf Logging
+                    try {
+                        frame.acquireCameraImage().use { image ->
+                            if (image == null) {
+                                Log.w("TextProcessing", "Failed to acquire image.")
+                                // --- DON'T clear overlay here on transient acquire failure ---
+                                return@launch
+                            }
+
+                            val (croppedInputImage, croppedBitmap) = cropToViewfinder(image)
+                            val imageWidth = croppedInputImage.width
+                            val imageHeight = croppedInputImage.height
+
+                            // Update preview on Main Thread (this is fine)
+                            withContext(Dispatchers.Main) { croppedImageView?.setImageBitmap(croppedBitmap) }
+
+                            textRecognizer.process(croppedInputImage)
+                                .addOnSuccessListener { visionText ->
+
+                                    Log.d("TextProcessingCoords", "InputImage for ML Kit: W=${croppedInputImage.width}, H=${croppedInputImage.height}")
+
+                                    // Log the dimensions being sent to the overlay
+                                    Log.d("TextProcessingCoords", "Sending to overlay: W=$imageWidth, H=$imageHeight")
+
+                                    // Log the current size of the overlay view itself for comparison
+                                    val overlayW = highlightOverlayView.width
+                                    val overlayH = highlightOverlayView.height
+                                    Log.d("TextProcessingCoords", "Current OverlayView Size: W=$overlayW, H=$overlayH")
 
 
- /*   @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
-    private fun setupTextRecognition(arSceneView: ArSceneView) {
+                                    Log.v("TextProcessing", "Success. Text: ${visionText.text.replace("\n", " ")}") // Log recognized text
+                                    // Task 1: Update Overlay (Always happens on success)
+                                    activity?.runOnUiThread {
+                                        // This implicitly replaces the old overlay content
+                                        highlightOverlayView.updateTextResult(visionText, imageWidth, imageHeight)
+                                    }
+
+                                    // Task 2: Check for Models (Only if active)
+                                    if (isTextRecognitionActive && !isModelPlaced) {
+                                        // ... (your model detection logic) ...
+                                        val recognizedText = visionText.text.lowercase()
+                                        for (modelName in recognizableModelNames) {
+                                            if (recognizedText.contains(modelName.lowercase())) {
+                                                Log.d("TextProcessing", "Model name '$modelName' found while active.")
+                                                recognizeTextThenRenderModel(modelName, currentTimeMs)
+                                                // break
+                                            }
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener { exception ->
+                                    Log.e("TextProcessing", "Text recognition failed", exception)
+                                    // --- DO NOT CLEAR OVERLAY HERE ---
+                                    // Let the overlay persist with the last known good result.
+                                    // The next successful recognition will update it.
+                                }
+                                .addOnCompleteListener {
+                                    val processingEndTime = System.nanoTime()
+                                    val durationMs = (processingEndTime - processingStartTime) / 1_000_000
+                                    Log.d("TextProcessingPerf", "Frame processing took: $durationMs ms (Interval: $minProcessingIntervalMs)") // Log perf
+                                }
+                        } // image closed
+                        lastProcessingTimeMs = currentTimeMs
+                    } catch (e: Exception) { // Catch specific exceptions if possible (e.g., IllegalStateException)
+                        Log.e("TextProcessing", "Error in processing loop", e)
+                        // --- DO NOT CLEAR OVERLAY HERE ---
+                        // Let the overlay persist after a generic error.
+                        // Consider if specific errors SHOULD clear it.
+                        // Example: If error indicates camera closed, then maybe clear.
+                        // withContext(Dispatchers.Main) { highlightOverlayView.clearOverlay() } // Generally avoid
+                    }
+                } // end launch
+            } // end listener
+        }*/
+    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+    private fun highlightRecognizedWords(
+        arSceneView: ArSceneView,
+        highlightOverlayView: HighlightOverlayView,
+        textRecognizer: TextRecognizer
+    ) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 10 // Process at most every second
+        val minProcessingIntervalMs = 500 // Debounce OCR calls
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
-            if (!isTextRecognitionActive || isRecognitionCancelled) return@addOnUpdateListener
-
             val currentTimeMs = System.currentTimeMillis()
-            if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
-                return@addOnUpdateListener
-            }
+            if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) return@addOnUpdateListener
 
             val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            if (frame.camera.trackingState != TrackingState.TRACKING) return@addOnUpdateListener
 
-            lifecycleScope.launch {
-
+            lifecycleScope.launch(Dispatchers.IO) {
+                var image: Image? = null
                 try {
-                    val image = frame.acquireCameraImage()
+                    image = frame.acquireCameraImage() ?: return@launch
                     val (croppedImage, croppedBitmap) = cropToViewfinder(image)
-                    croppedImageView.setImageBitmap(croppedBitmap)
+                    val imageWidth = croppedImage.width
+                    val imageHeight = croppedImage.height
+
+                    withContext(Dispatchers.Main) {
+                        highlightOverlayView.clearOverlay()
+                        croppedImageView.setImageBitmap(croppedBitmap) // Display cropped image for debugging
+                    }
 
                     textRecognizer.process(croppedImage)
                         .addOnSuccessListener { visionText ->
+                            if (visionText.textBlocks.isEmpty()) {
+                                Log.d("HighlightWords", "No text blocks recognized.")
+                                return@addOnSuccessListener
+                            }
 
-                            val recognizedText = visionText.text.lowercase()
-                            for (modelName in recognizableModelNames) {
-                                if (recognizedText.contains(modelName.lowercase())) {
-
-                                    // Monitor cancellation during riser playback
-                                    if (isRecognitionCancelled) {
-                                        cancelTextRecognition()
-                                        return@addOnSuccessListener
-                                    }
-                                    // Start playing the riser sound
-                                    riserSound()
-                                    riser.setOnCompletionListener {
-
-                                        if (!isModelPlaced) {
-                                            powerdown.release()
-                                            vibrate()
-                                            startRepeatingPing() // Start repeating ping
-                                            if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
-                                                showToast("'$modelName' detected! Find a Surface to Render the model.")
-                                                Log.d(
-                                                    "TextRecognition",
-                                                    "Model detected: $modelName"
-                                                )
-                                                lastToastTime = currentTimeMs
-                                            }
-                                            hideMagnifyingGlass()
-                                            view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility =
-                                                View.GONE
-                                            renderModelOnSurface(modelName)
-
-                                            return@setOnCompletionListener
+                            val currentRecognizableNames = highlightOverlayView.recognizableModelNames
+                            val filteredTextBlocks = visionText.textBlocks.filter { block ->
+                                block.lines.any { line ->
+                                    line.elements.any { element ->
+                                        currentRecognizableNames.any { modelName ->
+                                            element.text.lowercase() == modelName
                                         }
                                     }
                                 }
                             }
-                        }
-                        .addOnFailureListener { exception ->
-                            Log.e("TextRecognition", "Text recognition failed", exception)
-                        }
-                        .addOnCompleteListener {
-                            image.close()
-                        }
 
+                            if (filteredTextBlocks.isNotEmpty()) {
+                                Log.d("HighlightWords", "Recognized words: ${filteredTextBlocks.joinToString { it.text }}")
+                                lifecycleScope.launch {
+                                    withContext(Dispatchers.Main) {
+                                        highlightOverlayView.updateTextResult(filteredTextBlocks, imageWidth, imageHeight)
+                                    }
+                                }
+                            } else {
+                                Log.d("HighlightWords", "No matching words found in the database.")
+                            }
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("HighlightWords", "Text recognition failed: ${e.message}")
+                        }
                     lastProcessingTimeMs = currentTimeMs
                 } catch (e: Exception) {
-                    Log.e("TextRecognition", "Error processing frame", e)
+                    Log.e("HighlightWords", "Error processing frame.", e)
+                } finally {
+                    image?.close()
                 }
             }
         }
     }
-*/
 
+    /*   @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+       private fun setupTextRecognition(arSceneView: ArSceneView) {
+           var lastProcessingTimeMs = 0L
+           val minProcessingIntervalMs = 10 // Process at most every second
+
+           arSceneView.scene.addOnUpdateListener { frameTime ->
+               if (!isTextRecognitionActive || isRecognitionCancelled) return@addOnUpdateListener
+
+               val currentTimeMs = System.currentTimeMillis()
+               if (currentTimeMs - lastProcessingTimeMs < minProcessingIntervalMs) {
+                   return@addOnUpdateListener
+               }
+
+               val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+
+               lifecycleScope.launch {
+
+                   try {
+                       val image = frame.acquireCameraImage()
+                       val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                       croppedImageView.setImageBitmap(croppedBitmap)
+
+                       textRecognizer.process(croppedImage)
+                           .addOnSuccessListener { visionText ->
+
+                               val recognizedText = visionText.text.lowercase()
+                               for (modelName in recognizableModelNames) {
+                                   if (recognizedText.contains(modelName.lowercase())) {
+
+                                       // Monitor cancellation during riser playback
+                                       if (isRecognitionCancelled) {
+                                           cancelTextRecognition()
+                                           return@addOnSuccessListener
+                                       }
+                                       // Start playing the riser sound
+                                       riserSound()
+                                       riser.setOnCompletionListener {
+
+                                           if (!isModelPlaced) {
+                                               powerdown.release()
+                                               vibrate()
+                                               startRepeatingPing() // Start repeating ping
+                                               if (currentTimeMs - lastToastTime > TOAST_COOLDOWN_MS) {
+                                                   showToast("'$modelName' detected! Find a Surface to Render the model.")
+                                                   Log.d(
+                                                       "TextRecognition",
+                                                       "Model detected: $modelName"
+                                                   )
+                                                   lastToastTime = currentTimeMs
+                                               }
+                                               hideMagnifyingGlass()
+                                               view?.findViewById<ImageButton>(R.id.magnifyingGlassButton)?.visibility =
+                                                   View.GONE
+                                               renderModelOnSurface(modelName)
+
+                                               return@setOnCompletionListener
+                                           }
+                                       }
+                                   }
+                               }
+                           }
+                           .addOnFailureListener { exception ->
+                               Log.e("TextRecognition", "Text recognition failed", exception)
+                           }
+                           .addOnCompleteListener {
+                               image.close()
+                           }
+
+                       lastProcessingTimeMs = currentTimeMs
+                   } catch (e: Exception) {
+                       Log.e("TextRecognition", "Error processing frame", e)
+                   }
+               }
+           }
+       }
+   */
     @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
-        val minProcessingIntervalMs = 10 // Process at most every second
+        val minProcessingIntervalMs = 500 // Check twice per second
+        Log.d("ModelRecognition", "Setting up listener for model name detection and rendering.")
 
         arSceneView.scene.addOnUpdateListener { frameTime ->
             if (!isTextRecognitionActive || isRecognitionCancelled) return@addOnUpdateListener
@@ -468,32 +624,41 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
 
             val frame = arSceneView.arFrame ?: return@addOnUpdateListener
+            if (frame.camera.trackingState != TrackingState.TRACKING) {
+                return@addOnUpdateListener
+            }
 
-            lifecycleScope.launch {
+            lifecycleScope.launch(Dispatchers.IO) {
                 try {
-                    val image = frame.acquireCameraImage()
-                    val (croppedImage, croppedBitmap) = cropToViewfinder(image)
-                    croppedImageView.setImageBitmap(croppedBitmap)
-
-                    textRecognizer.process(croppedImage)
-                        .addOnSuccessListener { visionText ->
-                            val recognizedText = visionText.text.lowercase()
-                            for (modelName in recognizableModelNames) {
-                                if (recognizedText.contains(modelName.lowercase())) {
-                                    recognizeTextThenRenderModel(modelName, currentTimeMs)
+                    frame.acquireCameraImage().use { image ->
+                        val (croppedImage, croppedBitmap) = cropToViewfinder(image)
+                        withContext(Dispatchers.Main) {
+                            croppedImageView.setImageBitmap(croppedBitmap)
+                        }
+                        textRecognizer.process(croppedImage)
+                            .addOnSuccessListener { visionText ->
+                                val recognizedText = visionText.text.lowercase()
+                                for (modelName in recognizableModelNames) {
+                                    if (recognizedText.contains(modelName.lowercase())) {
+                                        Log.d("ModelRecognition", "Model name '$modelName' found in text.")
+                                        recognizeTextThenRenderModel(modelName, currentTimeMs)
+                                        break
+                                    }
                                 }
                             }
-                        }
-                        .addOnFailureListener { exception ->
-                            Log.e("TextRecognition", "Text recognition failed", exception)
-                        }
-                        .addOnCompleteListener {
-                            image.close()
-                        }
-
+                            .addOnFailureListener { exception ->
+                                Log.e("ModelRecognition", "Text recognition for model detection failed", exception)
+                            }
+                            .addOnCompleteListener {
+                                // No need for image.close() here anymore
+                                Log.v("ModelRecognition", "Model detection text processing complete.")
+                            }
+                    }
                     lastProcessingTimeMs = currentTimeMs
+                } catch (e: IllegalStateException) {
+                    Log.w("ModelRecognition", "Could not acquire image for model detection: ${e.message}")
                 } catch (e: Exception) {
-                    Log.e("TextRecognition", "Error processing frame", e)
+                    Log.e("ModelRecognition", "Error processing frame for model detection", e)
                 }
             }
         }
@@ -524,15 +689,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 renderModelOnSurface(modelName)
             }
         }
-    }
-
-
-    private fun startTextRecognition() {
-        isTextRecognitionActive = true
-    }
-
-    private fun stopTextRecognition() {
-        isTextRecognitionActive = false
     }
 
     private fun resetTextRecognition() {
@@ -581,6 +737,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 Log.e("TextRecognition", "MediaPlayer is in an invalid state.", e)
             }
         }
+    }
+
+    private fun startTextRecognition() {
+        isTextRecognitionActive = true
+    }
+
+    private fun stopTextRecognition() {
+        isTextRecognitionActive = false
     }
 
     private fun cropToViewfinder(image: Image): Pair<InputImage, Bitmap> {
@@ -778,6 +942,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
     }
+
     private fun unloadModels() {
         models.clear()
         modelViews.clear()

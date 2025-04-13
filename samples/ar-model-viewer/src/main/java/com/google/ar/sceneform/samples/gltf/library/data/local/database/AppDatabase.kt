@@ -71,13 +71,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
-
+        //populate the database with models
         suspend fun populateDatabase(
             modelDao: ModelDao,
             brainPointsDao: PointsDao,
             miniGameDao: MiniGameDao
         ) {
-            //populate the database with models
+            //{First Batch of 1-9 pages}
+            //page 223 (num_1)
             modelDao.insertModel(ModelEntity("Amphibian", "models/amphibian.glb", R.layout.amphibian_infos, "Tap to learn more!", R.raw.froggy))
             modelDao.insertModel(ModelEntity("Bacteria", "models/bacteria.glb", R.layout.bacteria_infos, "Tap to explore bacterial structures!", R.raw.bacteriasound))
             modelDao.insertModel(ModelEntity("Digestive", "models/digestive.glb", R.layout.digestive_infos, "Tap to see the digestive process!", R.raw.digestsound))
@@ -88,6 +89,11 @@ abstract class AppDatabase : RoomDatabase() {
             modelDao.insertModel(ModelEntity("Animal", "models/animal.glb", R.layout.animal_infos, "Tap to see the animals in action!", R.raw.animals_sound))
             modelDao.insertModel(ModelEntity("Plant", "models/plant.glb", R.layout.plant_info, "Tap to see the plants in action!", R.raw.popup))
             modelDao.insertModel(ModelEntity("Biotic", "models/biotic.glb", R.layout.biotic_infos, "Tap to see the biotic in action!", R.raw.bacteriasound))
+            modelDao.insertModel(ModelEntity("Cell", "models/cell.glb", R.layout.cell_info, "Tap to see the cell in action!", R.raw.bacteriasound))
+            modelDao.insertModel(ModelEntity("Biodiversity", "models/biodiversity.glb", R.layout.biodiversity_info, "Tap to see the biodiversity in action!", R.raw.animals_sound))
+            modelDao.insertModel(ModelEntity("Organism", "models/organism.glb", R.layout.organism_info, "Tap to see the organism in action!", R.raw.bacteriasound))
+
+
 
             // Ensure Initial Brain Points Exist
             brainPointsDao.updatePoints(0)
