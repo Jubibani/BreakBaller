@@ -77,7 +77,7 @@ abstract class AppDatabase : RoomDatabase() {
             brainPointsDao: PointsDao,
             miniGameDao: MiniGameDao
         ) {
-            //{First Batch of 1-9 pages}
+            //{FIRST BATCH OF 1-9 PAGES}
             //page 223 (num_1)
             modelDao.insertModel(ModelEntity("Amphibian", "models/amphibian.glb", R.layout.amphibian_infos, "Tap to learn more!", R.raw.froggy))
             modelDao.insertModel(ModelEntity("Bacteria", "models/bacteria.glb", R.layout.bacteria_infos, "Tap to explore bacterial structures!", R.raw.bacteriasound))
@@ -92,7 +92,9 @@ abstract class AppDatabase : RoomDatabase() {
             modelDao.insertModel(ModelEntity("Cell", "models/cell.glb", R.layout.cell_info, "Tap to see the cell in action!", R.raw.bacteriasound))
             modelDao.insertModel(ModelEntity("Biodiversity", "models/biodiversity.glb", R.layout.biodiversity_info, "Tap to see the biodiversity in action!", R.raw.animals_sound))
             modelDao.insertModel(ModelEntity("Organism", "models/organism.glb", R.layout.organism_info, "Tap to see the organism in action!", R.raw.bacteriasound))
-
+            modelDao.insertModel(ModelEntity("Ecosystem", "models/ecosystem.glb", R.layout.ecosystem_info, "Tap to see the ecosystem in action!", R.raw.animals_sound))
+            modelDao.insertModel(ModelEntity("Agriculture", "models/agriculture.glb", R.layout.agriculture_info, "Tap to see the agriculture in action!", R.raw.popup))
+            modelDao.insertModel(ModelEntity("Medicine", "models/medicine.glb", R.layout.medicine_info, "Tap to see the medicine in action!", R.raw.popup))
 
 
             // Ensure Initial Brain Points Exist

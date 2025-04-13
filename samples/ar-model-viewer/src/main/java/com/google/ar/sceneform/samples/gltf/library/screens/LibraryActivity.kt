@@ -197,7 +197,7 @@ val modelActivityMap = mapOf(
 
 fun getModelItems(): List<ModelItemData> {
     return listOf(
-        //{First Batch of 1-9 pages}
+        //{FIRST BATCH OF 1-9 PAGES}
         //page 223 (num_1)
         ModelItemData("Bacteria", "models/bacteria.glb", R.drawable.bacteria),
         ModelItemData("Amphibian", "models/amphibian.glb", R.drawable.amphibian),
@@ -212,6 +212,9 @@ fun getModelItems(): List<ModelItemData> {
         ModelItemData("Cell", "models/cell.glb", R.drawable.cell),
         ModelItemData("Biodiversity", "models/biodiversity.glb", R.drawable.biodiversity),
         ModelItemData("Organism", "models/organism.glb", R.drawable.organism),
+        ModelItemData("Ecosystem", "models/ecosystem.glb", R.drawable.ecosystem),
+        ModelItemData("Agriculture", "models/agriculture.glb", R.drawable.agriculture),
+        ModelItemData("Medicine", "models/medicine.glb", R.drawable.medicine),
 
 
         // Add more items as needed
