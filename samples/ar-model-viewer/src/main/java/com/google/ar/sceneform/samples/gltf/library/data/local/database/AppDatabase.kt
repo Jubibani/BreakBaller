@@ -95,6 +95,10 @@ abstract class AppDatabase : RoomDatabase() {
             modelDao.insertModel(ModelEntity("Ecosystem", "models/ecosystem.glb", R.layout.ecosystem_info, "Tap to see the ecosystem in action!", R.raw.animals_sound))
             modelDao.insertModel(ModelEntity("Agriculture", "models/agriculture.glb", R.layout.agriculture_info, "Tap to see the agriculture in action!", R.raw.popup))
             modelDao.insertModel(ModelEntity("Medicine", "models/medicine.glb", R.layout.medicine_info, "Tap to see the medicine in action!", R.raw.popup))
+            modelDao.insertModel(ModelEntity("Reptile", "models/reptile.glb", R.layout.reptile_info, "Tap to see the reptile in action!", R.raw.popup))
+
+            modelDao.insertModel(ModelEntity("Forest", "models/forest.glb", R.layout.forest_info, "Tap to see the forest in action!", R.raw.slender))
+            modelDao.insertModel(ModelEntity("Ocean", "models/ocean.glb", R.layout.ocean_info, "Tap to see the forest in action!", R.raw.ocean))
 
 
             // Ensure Initial Brain Points Exist

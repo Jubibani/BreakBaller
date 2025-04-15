@@ -1,0 +1,19 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:background="#14000000"
+    android:orientation="vertical">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitXY"
+        android:src="@drawable/ocean_info" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/the_term_ocean_comes_from_the_latin_word_keanos_which_literally_translates_to_the_great_stream_encircling_the_earth_s_disc_this_was_used_by_the_greeks_to_describe_the_single_mass_of_water_that_they_believed_surrounded_the_earth"
+        android:textColor="@android:color/white" />
+</LinearLayout>

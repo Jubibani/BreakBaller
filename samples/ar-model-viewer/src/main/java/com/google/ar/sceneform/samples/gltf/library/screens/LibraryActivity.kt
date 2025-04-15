@@ -215,6 +215,13 @@ fun getModelItems(): List<ModelItemData> {
         ModelItemData("Ecosystem", "models/ecosystem.glb", R.drawable.ecosystem),
         ModelItemData("Agriculture", "models/agriculture.glb", R.drawable.agriculture),
         ModelItemData("Medicine", "models/medicine.glb", R.drawable.medicine),
+        ModelItemData("Reptile", "models/reptile.glb", R.drawable.reptile),
+
+        ModelItemData("Forest", "models/forest.glb", R.drawable.forest),
+        ModelItemData("Ocean", "models/ocean.glb", R.drawable.ocean),
+
+
+
 
 
         // Add more items as needed
