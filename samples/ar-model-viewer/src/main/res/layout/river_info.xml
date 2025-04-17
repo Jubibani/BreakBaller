@@ -1,0 +1,19 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="250dp"
+    android:layout_height="wrap_content"
+    android:background="#14000000"
+    android:orientation="vertical">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="250dp"
+        android:adjustViewBounds="true"
+        android:scaleType="fitXY"
+        android:src="@drawable/river_info" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/a_river_is_a_big_stream_of_moving_water_that_flows_across_the_land_usually_starting_in_the_mountains_or_hills_and_flowing_towards_the_ocean_a_lake_or_another_river"
+        android:textColor="@android:color/white" />
+</LinearLayout>

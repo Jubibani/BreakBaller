@@ -215,13 +215,25 @@ fun getModelItems(): List<ModelItemData> {
         ModelItemData("Ecosystem", "models/ecosystem.glb", R.drawable.ecosystem),
         ModelItemData("Agriculture", "models/agriculture.glb", R.drawable.agriculture),
         ModelItemData("Medicine", "models/medicine.glb", R.drawable.medicine),
-        ModelItemData("Reptile", "models/reptile.glb", R.drawable.reptile),
 
+        //page 224 (num_2)
+        ModelItemData("Reptile", "models/reptile.glb", R.drawable.reptile),
         ModelItemData("Forest", "models/forest.glb", R.drawable.forest),
         ModelItemData("Ocean", "models/ocean.glb", R.drawable.ocean),
 
+        ModelItemData("River", "models/river.glb", R.drawable.river),
 
+        ModelItemData("Soil", "models/soil.glb", R.drawable.soil),
+        ModelItemData("Human", "models/human.glb", R.drawable.human),
+        ModelItemData("Acacia", "models/acacia.glb", R.drawable.acacia),
+        ModelItemData("Bacterium", "models/bacteria.glb", R.drawable.bacteria),
+        ModelItemData("Biological", "models/biological.glb", R.drawable.biological),
+        ModelItemData("Specie", "models/specie.glb", R.drawable.specie),
 
+        //page 225 (num_3)
+            // [organism] (already implemented)
+
+        //page 226 (num_4)
 
 
         // Add more items as needed
