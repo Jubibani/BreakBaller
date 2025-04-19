@@ -20,19 +20,22 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.annotation.OptIn
+import android.widget.VideoView
+
 import androidx.camera.core.ExperimentalGetImage
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
-import androidx.room.util.copy
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
@@ -174,6 +177,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
         // Initialize HighlightOverlayView
         highlightOverlayView = HighlightOverlayView(requireContext())
+
+
+
 
         // Add HighlightOverlayView to the root FrameLayout
         val rootLayout = view as FrameLayout
@@ -462,7 +468,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 } // end launch
             } // end listener
         }*/
-    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+
     private fun highlightRecognizedWords(
         arSceneView: ArSceneView,
         highlightOverlayView: HighlightOverlayView,
@@ -609,7 +615,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
            }
        }
    */
-    @androidx.annotation.OptIn(androidx.camera.core.ExperimentalGetImage::class)
+
     private fun setupTextRecognition(arSceneView: ArSceneView) {
         var lastProcessingTimeMs = 0L
         val minProcessingIntervalMs = 500 // Check twice per second
@@ -790,7 +796,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         return Pair(inputImage, circularBitmap)
     }
 
-
     private fun renderModelOnSurface(modelName: String) {
         val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
 
@@ -822,6 +827,19 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         val model = models[modelName] ?: return
         val modelView = modelViews[modelName] ?: return
 
+        //   access the actual view from the ViewRenderable
+        val infoView = modelView.view
+        val videoView = infoView.findViewById<VideoView?>(R.id.videoView)
+
+        modelEntity.interactionVideoResId?.let { videoResId ->
+            videoView?.apply {
+                val uri = Uri.parse("android.resource://${requireContext().packageName}/$videoResId")
+                setVideoURI(uri)
+                setOnPreparedListener { it.isLooping = true }
+                start()
+            }
+        }
+
         scene.addChild(AnchorNode(anchor).apply {
             addChild(TransformableNode(arFragment.transformationSystem).apply {
                 renderable = model
@@ -837,7 +855,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     isEnabled = false
                 })
 
-                // Add tap listener for model interaction
+                // Tap to trigger sound
                 setOnTapListener { _, _ ->
                     playInteractionSound(modelEntity.interactionSoundResId)
                 }
@@ -849,6 +867,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         isModelPlaced = true
         infoButton.visibility = View.VISIBLE
     }
+
 
     private fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
@@ -873,7 +892,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-    private fun toggleInfoVisibility() {
+/*    private fun toggleInfoVisibility() {
         isInfoVisible = !isInfoVisible
         scene.findByName("InfoNode")?.let { infoNode ->
             infoNode.isEnabled = isInfoVisible
@@ -884,7 +903,35 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
         }
         vibrate()
+    }*/
+
+    private fun toggleInfoVisibility() {
+        isInfoVisible = !isInfoVisible
+        scene.findByName("InfoNode")?.let { infoNode ->
+            infoNode.isEnabled = isInfoVisible
+
+            // Find the LinearLayout in the InfoNode's renderable view
+            val infoLayout = (infoNode.renderable as? ViewRenderable)?.view?.findViewById<LinearLayout>(R.id.infoLayout)
+            val videoView = infoLayout?.findViewById<VideoView>(R.id.videoView)
+
+            if (isInfoVisible) {
+                infoLayout?.visibility = View.VISIBLE
+                videoView?.apply {
+                    start() // Start or resume the video
+                }
+                onSound()
+            } else {
+                videoView?.apply {
+                    pause() // Pause the video when hidden
+                    seekTo(0) // Reset to the beginning if needed
+                }
+                infoLayout?.visibility = View.GONE
+                offSound()
+            }
+        }
+        vibrate()
     }
+
 
     private fun playInteractionSound(soundResId: Int) {
         MediaPlayer.create(context, soundResId)?.apply {
