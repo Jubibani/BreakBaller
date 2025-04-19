@@ -234,6 +234,7 @@ fun getModelItems(): List<ModelItemData> {
             // [organism] (already implemented)
 
         //page 226 (num_4)
+        ModelItemData("Scientist", "models/scientist.glb", R.drawable.scientist),
 
 
         // Add more items as needed

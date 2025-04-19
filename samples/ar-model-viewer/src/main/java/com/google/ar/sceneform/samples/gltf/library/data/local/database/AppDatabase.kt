@@ -114,6 +114,7 @@ abstract class AppDatabase : RoomDatabase() {
             // [organism] (already implemented)
 
             //page 226 (num_4)
+            modelDao.insertModel(ModelEntity("Scientist", "models/scientist.glb", R.layout.scientist_info, "Tap to explore scientist structures!", R.raw.popup))
 
 
 
