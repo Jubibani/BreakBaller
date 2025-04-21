@@ -2,6 +2,7 @@ package com.google.ar.sceneform.samples.gltf.library
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Matrix
@@ -23,6 +24,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
@@ -41,6 +43,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.google.ar.core.Anchor
 import com.google.ar.core.Plane
 import com.google.ar.core.TrackingState
@@ -124,7 +127,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var infoButton: FloatingActionButton
     private var isInfoVisible = false
 
+    //Other Buttons
+    private lateinit var libraryBackButton: FloatingActionButton
+    private lateinit var switchButton: SwitchMaterial
+
+
     //vide description
+    private lateinit var fullscreenToggle: ImageButton
     private lateinit var watchButton: ImageButton
     private lateinit var closeButton: ImageButton
     private lateinit var playerView: PlayerView
@@ -147,6 +156,8 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var isRecognitionCancelled = false
     private var isRiserCancelled = false
     private var hasPlaneBeenDetectedOnce = false
+    private var isFullscreen = false
+
 
     @OptIn(ExperimentalGetImage::class) @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -191,6 +202,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         highlightOverlayView = HighlightOverlayView(requireContext())
 
         //Initialize VideoDescription
+        fullscreenToggle = requireView().findViewById(R.id.fullscreenToggle)
         playerView = view.findViewById(R.id.playerView)
         videoOverlayContainer = view.findViewById(R.id.videoOverlayContainer)
         watchButton = view.findViewById(R.id.watchButton)
@@ -205,6 +217,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         // Set buttons to be hidden by default
         magnifyingGlassButton.visibility = View.GONE
         restartButton.visibility = View.GONE
+
+        //Initialize other buttons
+        //!these are from another layout, especially from an Activity, so we use [requireActivity]
+        libraryBackButton = requireActivity().findViewById(R.id.libraryBackButton)
+
+        switchButton = requireActivity().findViewById(R.id.switchButton)
 
         infoButton.setOnClickListener {
             toggleInfoVisibility()
@@ -902,6 +920,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
             arFragment.arSceneView.pause()
         }
+
+        setupFullscreenToggle()
+
     }
 
 
@@ -917,6 +938,82 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             arFragment.arSceneView.resume()
         }
     }
+    private fun setupFullscreenToggle() {
+        fullscreenToggle.setOnClickListener {
+            if (isFullscreen) {
+                exitFullscreen()
+            } else {
+                enterFullscreen()
+            }
+        }
+    }
+
+    private fun enterFullscreen() {
+        // Change to landscape mode
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+
+        // Make the container fill the screen
+        videoOverlayContainer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+        videoOverlayContainer.layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+
+        // Update PlayerView size to fill the container
+        val playerViewLayoutParams = playerView.layoutParams
+        playerViewLayoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+        playerViewLayoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+        playerView.layoutParams = playerViewLayoutParams
+
+        // Hide system UI for fullscreen effect
+        requireActivity().window.decorView.systemUiVisibility =
+            View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+
+        // Hide UI buttons when in full screen
+        closeButton.visibility = View.GONE
+        infoButton.visibility = View.GONE
+        restartButton.visibility = View.GONE
+        switchButton.visibility = View.GONE
+        libraryBackButton.visibility = View.GONE
+
+        fullscreenToggle.setImageResource(R.drawable.fullscreen_exit) // your "exit fullscreen" icon
+
+        // Change the fullscreen flag state
+        isFullscreen = true
+    }
+
+    private fun exitFullscreen() {
+        // Restore to portrait mode
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+
+        // First, reset the layout params for videoOverlayContainer
+        videoOverlayContainer.layoutParams.width = ViewGroup.LayoutParams.MATCH_PARENT
+        videoOverlayContainer.layoutParams.height = ViewGroup.LayoutParams.MATCH_PARENT
+        videoOverlayContainer.requestLayout()
+
+
+        // Now, reset PlayerView to its minimized size
+        playerView.layoutParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        playerView.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+        playerView.requestLayout()
+
+        playerView.requestLayout()  // Ensure PlayerView is remeasured properly
+
+        // Show system UI again
+        requireActivity().window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_VISIBLE
+
+        fullscreenToggle.setImageResource(R.drawable.fullscreen) // your "fullscreen" icon
+
+        // Change the fullscreen flag state
+        isFullscreen = false
+
+        // Restore button visibility after layout adjustments (if needed)
+        closeButton.visibility = View.VISIBLE
+        infoButton.visibility = View.VISIBLE
+        restartButton.visibility = View.VISIBLE
+        switchButton.visibility = View.VISIBLE
+        libraryBackButton.visibility = View.VISIBLE
+    }
+
 
 
     private fun placeModel(anchor: Anchor, modelEntity: ModelEntity) {
