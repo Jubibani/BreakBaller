@@ -21,12 +21,6 @@
         android:text="Classification in living things, also known as biological classification or taxonomy, is the process of grouping living organisms into categories based on shared characteristics"
         android:textColor="@android:color/white" />
 
-    <!-- VideoView at the bottom -->
-    <VideoView
-        android:id="@+id/videoView"
-        android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginTop="8dp"
-        />
+
 
 </LinearLayout>

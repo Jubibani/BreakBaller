@@ -23,6 +23,7 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -35,6 +36,9 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.map
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.ar.core.Anchor
@@ -120,6 +124,14 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private lateinit var infoButton: FloatingActionButton
     private var isInfoVisible = false
 
+    //vide description
+    private lateinit var watchButton: Button
+    private lateinit var playerView: PlayerView
+    private lateinit var videoOverlayContainer: FrameLayout
+    private lateinit var closeButton: Button
+    private var exoPlayer: ExoPlayer? = null
+
+
     //restart
     private lateinit var restartButton: FloatingActionButton
 
@@ -178,8 +190,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         // Initialize HighlightOverlayView
         highlightOverlayView = HighlightOverlayView(requireContext())
 
-
-
+        //Initialize VideoDescription
+        playerView = view.findViewById(R.id.playerView)
+        videoOverlayContainer = view.findViewById(R.id.videoOverlayContainer)
+        watchButton = view.findViewById(R.id.watchButton)
+        closeButton = view.findViewById(R.id.closeButton)
+        // Initially hide the video UI
+        videoOverlayContainer.visibility = View.GONE
 
         // Add HighlightOverlayView to the root FrameLayout
         val rootLayout = view as FrameLayout
@@ -796,6 +813,34 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         return Pair(inputImage, circularBitmap)
     }
 
+/*    private fun renderModelOnSurface(modelName: String) {
+        val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
+
+        if (models[modelName] == null || modelViews[modelName] == null) {
+            vibrate()
+            pingSound()
+            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        arFragment.arSceneView.scene.addOnUpdateListener { frameTime ->
+            val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener
+            val planes = frame.getUpdatedTrackables(Plane::class.java)
+
+            for (plane in planes) {
+                if (plane.trackingState == TrackingState.TRACKING && !isModelPlaced) {
+                    val pose = plane.centerPose
+                    val anchor = plane.createAnchor(pose)
+                    placeModel(anchor, modelEntity)
+                    isModelPlaced = true
+
+
+                    break
+                }
+            }
+        }
+    }*/
+
     private fun renderModelOnSurface(modelName: String) {
         val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
 
@@ -816,9 +861,54 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                     val anchor = plane.createAnchor(pose)
                     placeModel(anchor, modelEntity)
                     isModelPlaced = true
+
+                    // Ensure button visibility is updated on the main thread
+                    activity?.runOnUiThread {
+                        watchButton.visibility = View.VISIBLE
+                        watchButton.bringToFront() // Bring to front if needed
+                    }
+
+                    // Set up the watch button once the model is placed
+                    setupWatchButton(modelEntity)
+                    setupCloseButton()
+
                     break
                 }
             }
+        }
+    }
+
+
+    private fun setupWatchButton(modelEntity: ModelEntity) {
+        watchButton.setOnClickListener {
+            // Ensure exoPlayer is initialized
+            if (exoPlayer == null) {
+                val uri = Uri.parse("android.resource://${requireContext().packageName}/${modelEntity.interactionVideoResId}")
+                exoPlayer = ExoPlayer.Builder(requireContext()).build().apply {
+                    setMediaItem(MediaItem.fromUri(uri))
+                    prepare() // Prepare the video
+                    play() // Play the video
+                }
+            }
+
+            // Check if video is already playing or not
+            if (exoPlayer?.isPlaying == false) {
+                exoPlayer?.play() // Only play if not already playing
+            }
+
+            playerView.player = exoPlayer
+            videoOverlayContainer.visibility = View.VISIBLE
+            arFragment.arSceneView.pause() // Pause AR session to release GPU pressure
+        }
+    }
+
+    private fun setupCloseButton() {
+        closeButton.setOnClickListener {
+            // Hide the video UI, stop playback and resume AR
+            videoOverlayContainer.visibility = View.GONE
+            exoPlayer?.pause() // Pause the video
+            exoPlayer?.seekTo(0) // Rewind to the start of the video
+            arFragment.arSceneView.resume() // Resume AR session
         }
     }
 
@@ -827,7 +917,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         val model = models[modelName] ?: return
         val modelView = modelViews[modelName] ?: return
 
-        //   access the actual view from the ViewRenderable
+/*        //   access the actual view from the ViewRenderable
         val infoView = modelView.view
         val videoView = infoView.findViewById<VideoView?>(R.id.videoView)
 
@@ -838,7 +928,9 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 setOnPreparedListener { it.isLooping = true }
                 start()
             }
-        }
+        }*/
+
+
 
         scene.addChild(AnchorNode(anchor).apply {
             addChild(TransformableNode(arFragment.transformationSystem).apply {
@@ -868,7 +960,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         infoButton.visibility = View.VISIBLE
     }
 
-
     private fun showToast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
     }
@@ -892,46 +983,18 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-/*    private fun toggleInfoVisibility() {
-        isInfoVisible = !isInfoVisible
-        scene.findByName("InfoNode")?.let { infoNode ->
-            infoNode.isEnabled = isInfoVisible
-            if (isInfoVisible) {
-                onSound()
-            } else {
-                offSound()
-            }
-        }
-        vibrate()
-    }*/
-
     private fun toggleInfoVisibility() {
         isInfoVisible = !isInfoVisible
         scene.findByName("InfoNode")?.let { infoNode ->
             infoNode.isEnabled = isInfoVisible
-
-            // Find the LinearLayout in the InfoNode's renderable view
-            val infoLayout = (infoNode.renderable as? ViewRenderable)?.view?.findViewById<LinearLayout>(R.id.infoLayout)
-            val videoView = infoLayout?.findViewById<VideoView>(R.id.videoView)
-
             if (isInfoVisible) {
-                infoLayout?.visibility = View.VISIBLE
-                videoView?.apply {
-                    start() // Start or resume the video
-                }
                 onSound()
             } else {
-                videoView?.apply {
-                    pause() // Pause the video when hidden
-                    seekTo(0) // Reset to the beginning if needed
-                }
-                infoLayout?.visibility = View.GONE
                 offSound()
             }
         }
         vibrate()
     }
-
 
     private fun playInteractionSound(soundResId: Int) {
         MediaPlayer.create(context, soundResId)?.apply {
@@ -1013,6 +1076,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         powerdown.release()
         equip.release()
         unequip.release()
+        exoPlayer?.release()
     }
 
 
