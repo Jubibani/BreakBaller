@@ -1,4 +1,5 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/videoOverlayContainer"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -6,18 +7,25 @@
     android:background="#80000000"
     android:clickable="true">
 
-        <androidx.media3.ui.PlayerView
+    <androidx.media3.ui.PlayerView
         android:id="@+id/playerView"
         android:layout_width="300dp"
         android:layout_height="200dp"
         android:layout_gravity="center" />
 
-        <Button
+    <ImageButton
         android:id="@+id/closeButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Close"
-        android:layout_gravity="top|end"
-        android:layout_margin="16dp"/>
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="16dp"
+        android:src="@drawable/close"
+        android:scaleType="centerInside"
+        android:padding="8dp"
+        android:background="@drawable/red_button_background"
+        android:visibility="gone"
+        app:tint="@android:color/white" />
+
+
 
 </FrameLayout>

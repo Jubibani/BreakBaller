@@ -125,10 +125,10 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     private var isInfoVisible = false
 
     //vide description
-    private lateinit var watchButton: Button
+    private lateinit var watchButton: ImageButton
+    private lateinit var closeButton: ImageButton
     private lateinit var playerView: PlayerView
     private lateinit var videoOverlayContainer: FrameLayout
-    private lateinit var closeButton: Button
     private var exoPlayer: ExoPlayer? = null
 
 
@@ -881,36 +881,43 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     private fun setupWatchButton(modelEntity: ModelEntity) {
         watchButton.setOnClickListener {
-            // Ensure exoPlayer is initialized
             if (exoPlayer == null) {
                 val uri = Uri.parse("android.resource://${requireContext().packageName}/${modelEntity.interactionVideoResId}")
                 exoPlayer = ExoPlayer.Builder(requireContext()).build().apply {
                     setMediaItem(MediaItem.fromUri(uri))
-                    prepare() // Prepare the video
-                    play() // Play the video
+                    prepare()
+                    play()
                 }
+            } else if (exoPlayer?.isPlaying == false) {
+                exoPlayer?.play()
             }
 
-            // Check if video is already playing or not
-            if (exoPlayer?.isPlaying == false) {
-                exoPlayer?.play() // Only play if not already playing
-            }
-
+            // Assign player and update UI
             playerView.player = exoPlayer
             videoOverlayContainer.visibility = View.VISIBLE
-            arFragment.arSceneView.pause() // Pause AR session to release GPU pressure
+
+            // UI Toggles
+            watchButton.visibility = View.GONE
+            closeButton.visibility = View.VISIBLE
+
+            arFragment.arSceneView.pause()
         }
     }
+
 
     private fun setupCloseButton() {
         closeButton.setOnClickListener {
-            // Hide the video UI, stop playback and resume AR
+            // UI Toggles
+            closeButton.visibility = View.GONE
+            watchButton.visibility = View.VISIBLE
+
             videoOverlayContainer.visibility = View.GONE
-            exoPlayer?.pause() // Pause the video
-            exoPlayer?.seekTo(0) // Rewind to the start of the video
-            arFragment.arSceneView.resume() // Resume AR session
+            exoPlayer?.pause()
+            exoPlayer?.seekTo(0)
+            arFragment.arSceneView.resume()
         }
     }
+
 
     private fun placeModel(anchor: Anchor, modelEntity: ModelEntity) {
         val modelName = modelEntity.name
