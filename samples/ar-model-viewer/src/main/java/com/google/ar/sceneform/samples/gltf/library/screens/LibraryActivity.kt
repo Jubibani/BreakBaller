@@ -9,9 +9,11 @@ import android.widget.ImageButton
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -29,13 +31,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -48,6 +59,7 @@ class LibraryActivity : FragmentActivity() {
 
     private lateinit var backSound: MediaPlayer
     private lateinit var flipSound: MediaPlayer
+    private lateinit var switchSound: MediaPlayer
 
 
 
@@ -55,6 +67,8 @@ class LibraryActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         backSound = MediaPlayer.create(this, R.raw.back)
         flipSound = MediaPlayer.create(this, R.raw.flip)
+        switchSound = MediaPlayer.create(this, R.raw.swipe)
+
 
         setContent {
 
@@ -64,6 +78,7 @@ class LibraryActivity : FragmentActivity() {
                     finish = { finish() },
                     playBackSound = { playBackSound() },
                     playFlipSound = { playFlipSound() },
+                    playSwitchSound = { playSwitchSound() },
                     onModelSelected = { modelData ->
                         val libraryFragment = LibraryFragment().apply {
                             arguments = Bundle().apply {
@@ -89,13 +104,19 @@ class LibraryActivity : FragmentActivity() {
         flipSound.start()
     }
 
+    private fun playSwitchSound() {
+        switchSound.start()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         backSound.release()
         flipSound.release()
+        switchSound.release()
     }
 }
 
+/*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
@@ -141,7 +162,75 @@ fun LibraryScreen(
         }
     }
 }
+*/
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LibraryScreen(
+    finish: () -> Unit,
+    playBackSound: () -> Unit,
+    playFlipSound: () -> Unit,
+    playSwitchSound: () -> Unit,
+    onModelSelected: (ModelItemData) -> Unit
+) {
+    var selectedTabIndex by remember { mutableStateOf(0) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Library", style = MaterialTheme.typography.headlineMedium) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        playBackSound()
+                        finish()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.ArrowBack,
+                            contentDescription = "Back to Main"
+                        )
+                    }
+                }
+            )
+        }
+    ) { innerPadding ->
+        Column(modifier = Modifier.padding(innerPadding)) {
+            // TabRow for switching tabs
+            TabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                indicator = { tabPositions ->
+                    TabRowDefaults.Indicator(
+                        Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = Color(0xFFFFD700)
+                    )
+                }
+            ) {
+                listOf("Models", "Videos").forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = {
+                            selectedTabIndex = index
+                            playSwitchSound()
+                                  },
+                        text = { Text(title) }
+
+                    )
+                }
+            }
+
+            // Content for each tab
+            when (selectedTabIndex) {
+                0 -> ModelsContent(playFlipSound, onModelSelected)
+                1 -> VideosContent()
+            }
+        }
+    }
+}
 @Composable
 fun ModelItem(
     item: ModelItemData,
@@ -239,4 +328,33 @@ fun getModelItems(): List<ModelItemData> {
 
         // Add more items as needed
     )
+}
+
+@Composable
+fun ModelsContent(
+    playFlipSound: () -> Unit,
+    onModelSelected: (ModelItemData) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(16.dp)
+    ) {
+        items(getModelItems()) { item ->
+            ModelItem(item, playFlipSound, onModelSelected)
+        }
+    }
+}
+
+@Composable
+fun VideosContent() {
+    // Placeholder for Videos tab content
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Videos Tab Content", style = MaterialTheme.typography.bodyLarge)
+    }
 }
