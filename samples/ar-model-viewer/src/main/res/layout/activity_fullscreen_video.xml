@@ -7,11 +7,11 @@
 
     <androidx.media3.ui.PlayerView
         android:id="@+id/player_view"
-        android:layout_width="300dp"
-        android:layout_height="200dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_gravity="center"
         android:keepScreenOn="true"
-        tools:ignore="MissingClass" />
+        app:resize_mode="fit" tools:ignore="MissingClass" />
 
     <ImageButton
         android:id="@+id/close_button"

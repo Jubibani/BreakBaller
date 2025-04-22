@@ -53,6 +53,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.google.ar.sceneform.samples.gltf.R
 import com.google.ar.sceneform.samples.gltf.library.helpers.VideoPlayerHelper
@@ -373,7 +375,7 @@ fun VideosContent(
     }
 }
 
-@Composable
+@androidx.annotation.OptIn(UnstableApi::class) @Composable
 fun VideoItem(
     item: VideoItemData,
     playFlipSound: () -> Unit,
@@ -381,10 +383,10 @@ fun VideoItem(
 ) {
     val context = LocalContext.current
     val videoPlayerHelper = remember { VideoPlayerHelper(context) }
-    val exoPlayer = remember(item.videoResId) { // Recreate player if the video item changes
+    val exoPlayer = remember(item.videoResId) {
         videoPlayerHelper.initializePlayer(item.videoResId).apply {
             playWhenReady = true
-            volume = 0f // Mute the audio
+            volume = 0f
         }
     }
 
@@ -401,14 +403,11 @@ fun VideoItem(
             .fillMaxWidth()
             .clickable {
                 playFlipSound()
-                // Do NOT release the exoPlayer here
-                onVideoSelected(item) // Notify the parent about the selected video
+                onVideoSelected(item)
                 val intent = Intent(context, FullscreenVideoActivity::class.java).apply {
                     putExtra("videoResId", item.videoResId)
-                    // Optionally, pass the current preview position if you want to resume fullscreen from there
-                    // putExtra("previewPosition", exoPlayer.currentPosition)
                 }
-                context.startActivity(intent) // Start fullscreen activity
+                context.startActivity(intent)
             },
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
@@ -422,15 +421,20 @@ fun VideoItem(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             AndroidView(
-                factory = { PlayerView(context).apply { player = exoPlayer } },
+                factory = {
+                    PlayerView(context).apply {
+                        player = exoPlayer
+                        // Set the resize mode to make the video fill the view
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FILL
+                    }
+                },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
+                    .fillMaxWidth() // Make the AndroidView fill the width of the Column
+                    .height(100.dp) // Maintain a fixed height for the preview
             )
         }
     }
 }
-
 fun getVideoItems(): List<VideoItemData> {
     return listOf(
         VideoItemData("Classification of Living Things", R.raw.classification, R.drawable.classification)
