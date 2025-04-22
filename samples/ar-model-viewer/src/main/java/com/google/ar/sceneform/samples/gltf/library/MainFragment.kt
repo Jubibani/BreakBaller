@@ -235,12 +235,12 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             }
             setOnViewCreatedListener { arSceneView ->
                 arSceneView.setFrameRateFactor(SceneView.FrameRate.FULL)
-                 setupTextRecognition(arSceneView)
+                setupTextRecognition(arSceneView)
 
                 checkDetectedPLaneForEntry()
                 setupRecognizableModelNames()
 
-     /*           highlightRecognizedWords(arSceneView, highlightOverlayView, textRecognizer)*/
+                /*           highlightRecognizedWords(arSceneView, highlightOverlayView, textRecognizer)*/
             }
         }
 
@@ -831,33 +831,33 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         return Pair(inputImage, circularBitmap)
     }
 
-/*    private fun renderModelOnSurface(modelName: String) {
-        val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
+    /*    private fun renderModelOnSurface(modelName: String) {
+            val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
 
-        if (models[modelName] == null || modelViews[modelName] == null) {
-            vibrate()
-            pingSound()
-            Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
-            return
-        }
+            if (models[modelName] == null || modelViews[modelName] == null) {
+                vibrate()
+                pingSound()
+                Toast.makeText(context, "Loading...", Toast.LENGTH_SHORT).show()
+                return
+            }
 
-        arFragment.arSceneView.scene.addOnUpdateListener { frameTime ->
-            val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener
-            val planes = frame.getUpdatedTrackables(Plane::class.java)
+            arFragment.arSceneView.scene.addOnUpdateListener { frameTime ->
+                val frame = arFragment.arSceneView.arFrame ?: return@addOnUpdateListener
+                val planes = frame.getUpdatedTrackables(Plane::class.java)
 
-            for (plane in planes) {
-                if (plane.trackingState == TrackingState.TRACKING && !isModelPlaced) {
-                    val pose = plane.centerPose
-                    val anchor = plane.createAnchor(pose)
-                    placeModel(anchor, modelEntity)
-                    isModelPlaced = true
+                for (plane in planes) {
+                    if (plane.trackingState == TrackingState.TRACKING && !isModelPlaced) {
+                        val pose = plane.centerPose
+                        val anchor = plane.createAnchor(pose)
+                        placeModel(anchor, modelEntity)
+                        isModelPlaced = true
 
 
-                    break
+                        break
+                    }
                 }
             }
-        }
-    }*/
+        }*/
 
     private fun renderModelOnSurface(modelName: String) {
         val modelEntity = modelInfoMap[modelName] ?: return // Get model from DB
@@ -896,7 +896,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         }
     }
 
-
     private fun setupWatchButton(modelEntity: ModelEntity) {
         watchButton.setOnClickListener {
             if (exoPlayer == null) {
@@ -925,7 +924,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     }
 
-
     private fun setupCloseButton() {
         closeButton.setOnClickListener {
             // UI Toggles
@@ -938,6 +936,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
             arFragment.arSceneView.resume()
         }
     }
+
     private fun setupFullscreenToggle() {
         fullscreenToggle.setOnClickListener {
             if (isFullscreen) {
@@ -1020,20 +1019,6 @@ class MainFragment : Fragment(R.layout.fragment_main) {
         val modelName = modelEntity.name
         val model = models[modelName] ?: return
         val modelView = modelViews[modelName] ?: return
-
-/*        //   access the actual view from the ViewRenderable
-        val infoView = modelView.view
-        val videoView = infoView.findViewById<VideoView?>(R.id.videoView)
-
-        modelEntity.interactionVideoResId?.let { videoResId ->
-            videoView?.apply {
-                val uri = Uri.parse("android.resource://${requireContext().packageName}/$videoResId")
-                setVideoURI(uri)
-                setOnPreparedListener { it.isLooping = true }
-                start()
-            }
-        }*/
-
 
 
         scene.addChild(AnchorNode(anchor).apply {

@@ -115,6 +115,13 @@
             android:exported="true">
 
         </activity>
+        <!--Library Activity-->
+        <activity
+            android:name=".library.screens.FullscreenVideoActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true">
+
+        </activity>
 
         <!--Practice Activity-->
         <activity

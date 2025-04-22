@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,8 +51,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.fragment.app.FragmentActivity
+import androidx.media3.ui.PlayerView
 import com.google.ar.sceneform.samples.gltf.R
+import com.google.ar.sceneform.samples.gltf.library.helpers.VideoPlayerHelper
 import com.google.ar.sceneform.samples.gltf.library.theme.AugmentEDTheme
 
 
@@ -90,7 +94,8 @@ class LibraryActivity : FragmentActivity() {
                             .replace(android.R.id.content, libraryFragment)
                             .addToBackStack(null)
                             .commit()
-                    }
+                    },
+                    onVideoSelected = {}
 
                 )
             }
@@ -171,7 +176,8 @@ fun LibraryScreen(
     playBackSound: () -> Unit,
     playFlipSound: () -> Unit,
     playSwitchSound: () -> Unit,
-    onModelSelected: (ModelItemData) -> Unit
+    onModelSelected: (ModelItemData) -> Unit,
+    onVideoSelected: (VideoItemData) -> Unit
 ) {
     var selectedTabIndex by remember { mutableStateOf(0) }
 
@@ -226,7 +232,7 @@ fun LibraryScreen(
             // Content for each tab
             when (selectedTabIndex) {
                 0 -> ModelsContent(playFlipSound, onModelSelected)
-                1 -> VideosContent()
+                1 -> VideosContent(playFlipSound, onVideoSelected)
             }
         }
     }
@@ -324,6 +330,7 @@ fun getModelItems(): List<ModelItemData> {
 
         //page 226 (num_4)
         ModelItemData("Scientist", "models/scientist.glb", R.drawable.scientist),
+        ModelItemData("Classification", "models/classification.glb", R.drawable.classification),
 
 
         // Add more items as needed
@@ -345,16 +352,80 @@ fun ModelsContent(
     }
 }
 
+/*Videos Section*/
+data class VideoItemData(
+    val title: String,
+    val videoResId: Int,
+    val previewImageResId: Int
+)
 @Composable
-fun VideosContent() {
-    // Placeholder for Videos tab content
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+fun VideosContent(
+    playFlipSound: () -> Unit,
+    onVideoSelected: (VideoItemData) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = 160.dp),
+        contentPadding = PaddingValues(16.dp)
     ) {
-        Text("Videos Tab Content", style = MaterialTheme.typography.bodyLarge)
+        items(getVideoItems()) { item ->
+            VideoItem(item, playFlipSound, onVideoSelected)
+        }
     }
+}
+
+@Composable
+fun VideoItem(
+    item: VideoItemData,
+    playFlipSound: () -> Unit,
+    onVideoSelected: (VideoItemData) -> Unit
+) {
+    val context = LocalContext.current
+    val videoPlayerHelper = remember { VideoPlayerHelper(context) }
+    val exoPlayer = remember { videoPlayerHelper.initializePlayer(item.videoResId.toString()) } // You might still need to pass it as a String for the inline player
+
+    DisposableEffect(Unit) {
+        onDispose {
+            videoPlayerHelper.releasePlayer()
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .clickable {
+                playFlipSound()
+                onVideoSelected(item) // Notify the parent about the selected video
+                val intent = Intent(context, FullscreenVideoActivity::class.java).apply {
+                    putExtra("videoResId", item.videoResId) // Changed key and value
+                }
+                context.startActivity(intent) // Start fullscreen activity
+            },
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(8.dp)
+        ) {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            AndroidView(
+                factory = { PlayerView(context).apply { player = exoPlayer } },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+        }
+    }
+}
+
+
+fun getVideoItems(): List<VideoItemData> {
+    return listOf(
+        VideoItemData("Classification of Living Things", R.raw.classification, R.drawable.classification)
+        // Add more videos as needed, using R.raw.<your_video_file_name>
+    )
 }

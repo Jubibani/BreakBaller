@@ -26,8 +26,6 @@
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="top|end"
-            android:layout_margin="4dp"
-            android:background="#CC000000"
             android:src="@drawable/fullscreen"
             app:tint="@android:color/white" />
     </FrameLayout>
