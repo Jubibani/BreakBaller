@@ -381,11 +381,17 @@ fun VideoItem(
 ) {
     val context = LocalContext.current
     val videoPlayerHelper = remember { VideoPlayerHelper(context) }
-    val exoPlayer = remember { videoPlayerHelper.initializePlayer(item.videoResId.toString()) } // You might still need to pass it as a String for the inline player
+    val exoPlayer = remember(item.videoResId) { // Recreate player if the video item changes
+        videoPlayerHelper.initializePlayer(item.videoResId).apply {
+            playWhenReady = true
+            volume = 0f // Mute the audio
+        }
+    }
 
-    DisposableEffect(Unit) {
+    DisposableEffect(exoPlayer) {
         onDispose {
-            videoPlayerHelper.releasePlayer()
+            exoPlayer.stop()
+            exoPlayer.release()
         }
     }
 
@@ -395,9 +401,12 @@ fun VideoItem(
             .fillMaxWidth()
             .clickable {
                 playFlipSound()
+                // Do NOT release the exoPlayer here
                 onVideoSelected(item) // Notify the parent about the selected video
                 val intent = Intent(context, FullscreenVideoActivity::class.java).apply {
-                    putExtra("videoResId", item.videoResId) // Changed key and value
+                    putExtra("videoResId", item.videoResId)
+                    // Optionally, pass the current preview position if you want to resume fullscreen from there
+                    // putExtra("previewPosition", exoPlayer.currentPosition)
                 }
                 context.startActivity(intent) // Start fullscreen activity
             },
@@ -421,7 +430,6 @@ fun VideoItem(
         }
     }
 }
-
 
 fun getVideoItems(): List<VideoItemData> {
     return listOf(
