@@ -507,6 +507,7 @@ GameObject:
   - component: {fileID: 724808192}
   - component: {fileID: 724808194}
   - component: {fileID: 724808195}
+  - component: {fileID: 724808196}
   m_Layer: 0
   m_Name: BouncyBall
   m_TagString: Untagged
@@ -647,6 +648,19 @@ CircleCollider2D:
   m_CompositeOrder: 0
   m_Offset: {x: 0, y: 0}
   m_Radius: 0.5
+--- !u!114 &724808196
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 724808191}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dce0b324fa00b674d9234f7f489892df, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  minimumY: -5.5
 --- !u!1 &1483684948
 GameObject:
   m_ObjectHideFlags: 0
