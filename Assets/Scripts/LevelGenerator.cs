@@ -1,5 +1,5 @@
 using UnityEngine;
-
+using UnityEngine.SceneManagement; //this is in order to manage the current scene of the game 
 public class LevelGenerator : MonoBehaviour
 {
     public Vector2Int size;          // Number of rows (x) and columns (y) for the grid
@@ -30,6 +30,13 @@ public class LevelGenerator : MonoBehaviour
         }
 
         Debug.Log($"Generated a grid of {size.x} rows and {size.y} columns.");
+    }
+
+    public void Restart()
+    {
+        Time.timeScale = 1;
+        //then reload the current scene
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
 }
