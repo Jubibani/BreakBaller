@@ -2,11 +2,11 @@ using UnityEngine;
 
 public class LevelGenerator : MonoBehaviour
 {
-    public Vector2Int size;          // reference the size value input from the editor 
-    public Vector2 offset;           // reference the offset value input from the editor 
-    public GameObject brickPrefab;   // brickPrefab is to reference the 'brick' object that has been made as a prefab
+    public Vector2Int size;          // Number of rows (x) and columns (y) for the grid
+    public Vector2 offset;           // Spacing between bricks in the grid
+    public GameObject brickPrefab;   // Reference to the brick prefab
 
-    //starts the code after the script has been loaded, even before the 'Start()' function
+    public Gradient gradient;
     private void Awake()
     {
         GenerateLevel();
@@ -14,14 +14,22 @@ public class LevelGenerator : MonoBehaviour
 
     void GenerateLevel()
     {
-        // Loop through rows and columns to create the grid
         for (int row = 0; row < size.x; row++) // Outer loop for rows
         {
             for (int col = 0; col < size.y; col++) // Inner loop for columns
             {
-                GameObject newBrick = Instantiate(brickPrefab, transform);
-                newBrick.transform.position = transform.position + new Vector3((float)((size.x-1)*.5f-row) * offset.x, col * offset.y, 0);
+                // Calculate the position of each brick
+                float xPosition = (row - (size.x - 1) * 0.5f) * offset.x; // Centered horizontal position
+                float yPosition = col * offset.y;                        // Vertical position
+                Vector3 position = transform.position + new Vector3(xPosition, yPosition, 0);
+
+                // Instantiate the brick prefab at the calculated position
+                GameObject newBrick = Instantiate(brickPrefab, position, Quaternion.identity, transform);
+                newBrick.GetComponent<SpriteRenderer>().color = gradient.Evaluate((float)col / (size.y - 1));
             }
         }
+
+        Debug.Log($"Generated a grid of {size.x} rows and {size.y} columns.");
     }
+
 }
