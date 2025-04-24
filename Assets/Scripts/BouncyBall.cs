@@ -18,6 +18,9 @@ public class BouncyBall : MonoBehaviour
     public GameObject gameOverPanel;
     public GameObject youWinPanel;
 
+    public AudioSource src;
+    public AudioClip bounceUp, bounceWall, ballFall, brickDestroy, bouncePaddle,gameOver;
+
     void Start()
     {
         //get the RigidBody2D component attached to the bouncy ball object
@@ -43,6 +46,9 @@ public class BouncyBall : MonoBehaviour
         //check if the ball's Y position is below the minimum threshold
         if (transform.position.y < minimumY)
         {
+            //play fall sound
+            src.clip = ballFall;
+            src.Play();
 
             if (lives == 0)
             {
@@ -51,6 +57,8 @@ public class BouncyBall : MonoBehaviour
             }
             else
             {
+ 
+
                 // decrease the life of the player
                 lives--;
                 // when a life has been subtracted, decrease the lives image by setting the visibility of individual image object to false
@@ -85,13 +93,29 @@ public class BouncyBall : MonoBehaviour
         Debug.Log("Game Over!");
         gameOverPanel.SetActive(true);
 
+        src.clip = gameOver;
+        src.Play();
+
         //since we are unable to use bouncy ball anymore, we destroy the game object
         Time.timeScale = 0;
         Destroy(gameObject);
 
     }
     private void OnCollisionEnter2D(Collision2D collision)
-    {   
+    {
+
+        if (collision.gameObject.CompareTag("Paddle"))
+        {
+            src.clip = bouncePaddle;
+            src.Play();
+        }
+
+        if (collision.gameObject.CompareTag("Walls"))
+        {
+            src.clip = bounceWall;
+            src.Play();
+        }
+
         //checks if the object that the ball has collided with if it has the tag 'Brick'
         if (collision.gameObject.CompareTag("Brick"))
         {   
@@ -100,6 +124,8 @@ public class BouncyBall : MonoBehaviour
             Destroy(collision.gameObject);
             //decrement every brick that has been counted
             brickCount--;
+            src.clip = brickDestroy;
+            src.Play();
 
             //give score to player
             score += 10;

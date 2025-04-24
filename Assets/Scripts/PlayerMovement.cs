@@ -10,6 +10,9 @@ public class PlayerMovement : MonoBehaviour
     float leftBoundaryOfTheViewport;
     float rightBoundaryOfTheViewport;
 
+    public AudioSource src;
+    public AudioClip moveRight, moveLeft;
+
     void Start()
     {
         Debug.Log("Hello World! Start!");
@@ -27,6 +30,18 @@ public class PlayerMovement : MonoBehaviour
         //get the horizontal input
         horizontalMovement = Input.GetAxis("Horizontal");
 
+
+ /*       if (horizontalMovement > 0)
+        {
+           src.clip = moveRight;
+           src.Play();
+        }
+        else if (horizontalMovement < 0)
+        {
+            src.clip = moveLeft;
+            src.Play();
+        }*/
+
         /*using clamp method to limit the movement of the paddle within the viewport
          * SYNTAX: [float clampedValue = Mathf.Clamp(value, min, max)]
             value: The value you want to clamp.
@@ -36,6 +51,8 @@ public class PlayerMovement : MonoBehaviour
 
         //use the 'horizontalMovement' variable to manipulate the position of the player object
         newXPositionFromUserInput = transform.position.x + horizontalMovement * speed * Time.deltaTime;
+
+
 
         //get the world space boundaries of the viewport
         leftBoundaryOfTheViewport = Camera.main.ViewportToWorldPoint(new Vector3(0, 0, 0)).x;
