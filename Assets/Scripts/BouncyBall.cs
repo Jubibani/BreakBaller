@@ -19,7 +19,7 @@ public class BouncyBall : MonoBehaviour
     public GameObject youWinPanel;
 
     public AudioSource src;
-    public AudioClip bounceUp, bounceWall, ballFall, brickDestroy, bouncePaddle,gameOver;
+    public AudioClip bounceUp, bounceWall, ballFall, brickDestroy, bouncePaddle,gameOver, youWin;
 
     void Start()
     {
@@ -133,9 +133,13 @@ public class BouncyBall : MonoBehaviour
             scoreText.text = score.ToString("00000");
 
 
-            if (brickCount <= 0) {
+            if (brickCount == 0) {
                 Debug.Log("You Win!");
                 youWinPanel.SetActive(true);
+
+                src.clip = youWin;
+                src.Play();
+
 
                 //since we are unable to use bouncy ball anymore, we destroy the game object
                 Time.timeScale = 0;

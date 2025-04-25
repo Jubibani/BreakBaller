@@ -7,6 +7,8 @@ public class LevelGenerator : MonoBehaviour
     public GameObject brickPrefab;   // Reference to the brick prefab
 
     public Gradient gradient;
+    public GameObject menuPanel;
+
     private void Awake()
     {
         GenerateLevel();
@@ -39,4 +41,24 @@ public class LevelGenerator : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
+    public void Quit()
+    {
+        Debug.Log("Quit function called (in Editor)"); 
+        Application.Quit();
+    }
+
+    public void Pause()
+    {
+
+        menuPanel.SetActive(true);
+        Time.timeScale = 0; // Pause the game
+        Debug.Log("Pause the Game");
+    }
+
+    public void UnPause()
+    {
+        menuPanel.SetActive(false);
+        Time.timeScale = 1; // Unpause the game
+        Debug.Log("Unpause the Game");
+    }
 }
