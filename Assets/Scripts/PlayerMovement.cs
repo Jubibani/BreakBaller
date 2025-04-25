@@ -27,20 +27,23 @@ public class PlayerMovement : MonoBehaviour
     void MovePaddle()
     {
 
-        //get the horizontal input
-        horizontalMovement = Input.GetAxis("Horizontal");
+/*        //get the horizontal input [Keyboard]
+        horizontalMovement = Input.GetAxis("Horizontal");*/
+        //get the horizontal input [Mobile]
+        horizontalMovement = SimpleInput.GetAxis("Horizontal");
 
 
- /*       if (horizontalMovement > 0)
-        {
-           src.clip = moveRight;
-           src.Play();
-        }
-        else if (horizontalMovement < 0)
-        {
-            src.clip = moveLeft;
-            src.Play();
-        }*/
+
+        /*       if (horizontalMovement > 0)
+               {
+                  src.clip = moveRight;
+                  src.Play();
+               }
+               else if (horizontalMovement < 0)
+               {
+                   src.clip = moveLeft;
+                   src.Play();
+               }*/
 
         /*using clamp method to limit the movement of the paddle within the viewport
          * SYNTAX: [float clampedValue = Mathf.Clamp(value, min, max)]
