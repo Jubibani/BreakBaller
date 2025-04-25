@@ -129,7 +129,7 @@ abstract class AppDatabase : RoomDatabase() {
             miniGameDao.insertGame(MiniGameEntity("2", "Reward Item 2", false))
             miniGameDao.insertGame(MiniGameEntity("3", "Reward Item 3", false))
             miniGameDao.insertGame(MiniGameEntity("4", "Reward Item 4", false))
-            miniGameDao.insertGame(MiniGameEntity("5", "Unity Mini-Game", false)) // Unity Mini-Game to be unlocked
+            miniGameDao.insertGame(MiniGameEntity("5", "Break Baller", false)) // Unity Mini-Game to be unlocked
 
 
             Log.d("DatabaseDebug", "Inserted initial rewards")

@@ -87,8 +87,8 @@ class RewardsViewModel(application: Application) : AndroidViewModel(application)
                         // The imported Unity mini-game reward
                         RewardItemData(
                             id = game.gameId,
-                            name = "Unity Mini-Game",
-                            description = "Unlock and play the Unity mini-game!",
+                            name = "Break Baller",
+                            description = "Break Baller is where you control a paddle and break bricks to win!",
                             imageResId = R.drawable.question_icon, // Replace with actual icon
                             cost = 75, // Adjust as needed
                             isUnlocked = game.isUnlocked,
